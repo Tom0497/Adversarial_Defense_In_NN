@@ -1,11 +1,11 @@
 # Adversarial Defense in Neural Networks
 ***Project for the Computational Intelligence course (EL-4106), spring semester, 2019.***
 ### Authors:    
-**R. Becerra** <br>
+**R. D. Becerra** <br>
 Electrical Engineering Student <br> Physical and Mathematical Sciences Faculty <br> Universidad de Chile <br>
 raimundo.becerra@ug.uchile.cl <br>
 <br>
-**T. Saldivia** <br>
+**T. R. Saldivia** <br>
 Electrical Engineering Student <br> Physical and Mathematical Sciences Faculty <br> Universidad de Chile <br>
 tomas.saldivia@ug.uchile.cl <br>
 <div style="text-align: justify">
