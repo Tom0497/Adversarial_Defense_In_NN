@@ -120,18 +120,12 @@ def filter_urls_by_wnid(data, wnid):
 
 if __name__ == "__main__":
     wnid_df = get_dict_classes(dict_path_)
-
     class_filter = "n00005787"
-
     data_ = get_urls_and_wnid(urls_path, 2048)
-
     urls_ = filter_urls_by_wnid(data_, "n00005787")
-
     images_ = get_images_from_urls(urls_)
     class_path = images_path + "/" + class_filter
-
     if not os.path.isdir(class_path):
         os.mkdir(class_path)
-
     names_ = ["image{}".format(i) + ".jpg" for i in range(len(images_))]
     save_images_in_path(images_, names_, class_path)
