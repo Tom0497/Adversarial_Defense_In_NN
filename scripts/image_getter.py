@@ -5,12 +5,12 @@ import urllib.request
 import urllib.error
 import http.client
 
-classes_file = r"\imagenet_class_index.json"
-urls_file = r"\fall11_urls.txt"
+classes_file = r"/imagenet_class_index.json"
+urls_file = r"/fall11_urls.txt"
 current_directory = os.getcwd()
-dict_path_ = os.path.dirname(current_directory) + r"\image_metadata" + classes_file
-urls_path = os.path.dirname(current_directory) + r"\image_metadata" + urls_file
-images_path = os.path.dirname(current_directory) + r"\images"
+dict_path_ = os.path.dirname(current_directory) + r"/image_metadata" + classes_file
+urls_path = os.path.dirname(current_directory) + r"/image_metadata" + urls_file
+images_path = os.path.dirname(current_directory) + r"/images"
 
 
 def get_dict_classes(path):
@@ -104,9 +104,34 @@ def save_images_in_path(images, names, path=os.getcwd()):
         image.save(os.path.join(path, name), 'JPEG')
 
 
+def filter_urls_by_wnid(data, wnid):
+    """
+    Returns list of urls for given wnid.
+    :param data:        DataFrame. Columns:
+                            * 'wnid': Contains wnid
+                            * 'url':  Contains url
+    :param wnid:        Desired wnid to filter urls
+    :return:            List of urls for give wnid.
+    """
+    data_filtered = data[data['wnid'] == wnid]
+    urls_filtered = data_filtered["url"].values
+    return urls_filtered
+
+
 if __name__ == "__main__":
-    data_ = get_urls_and_wnid(urls_path)
-    urls_ = data_["url"].values
+    wnid_df = get_dict_classes(dict_path_)
+
+    class_filter = "n00005787"
+
+    data_ = get_urls_and_wnid(urls_path, 2048)
+
+    urls_ = filter_urls_by_wnid(data_, "n00005787")
+
     images_ = get_images_from_urls(urls_)
+    class_path = images_path + "/" + class_filter
+
+    if not os.path.isdir(class_path):
+        os.mkdir(class_path)
+
     names_ = ["image{}".format(i) + ".jpg" for i in range(len(images_))]
-    save_images_in_path(images_, names_, images_path)
+    save_images_in_path(images_, names_, class_path)
