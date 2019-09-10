@@ -3,8 +3,7 @@ import os
 from PIL import Image
 import urllib.request
 import urllib.error
-from PIL import PngImagePlugin
-import matplotlib.pyplot as plt
+import http.client
 
 classes_file = r"\imagenet_class_index.json"
 urls_file = r"\fall11_urls.txt"
@@ -28,7 +27,7 @@ def get_dict_classes(path):
     return data
 
 
-def get_urls_and_wnid(path, limit=4096):
+def get_urls_and_wnid(path, limit=1024):
     """
     Formats the file located in path in order to get a table with wnid code and url of the ImageNet's DataSet.
 
@@ -54,11 +53,17 @@ def get_image_from_url(url):
     try:
         image = Image.open(urllib.request.urlopen(url))
         return image
-    except urllib.error.HTTPError:
-        print("URL not found, error 404")
+    except urllib.error.HTTPError as e:
+        print(e)
         return None
-    except urllib.error.URLError:
-        print("URL error")
+    except urllib.error.URLError as e:
+        print(e)
+        return None
+    except IOError as e:
+        print(e)
+        return None
+    except http.client.HTTPException as e:
+        print(e)
         return None
 
 
@@ -109,5 +114,5 @@ if __name__ == "__main__":
     data_ = get_urls_and_wnid(urls_path)
     urls_ = data_["url"].values
     images_ = get_images_from_urls(urls_)
-    names = ["image{}".format(i) for i in range(len(images_))]
-    save_images_in_path(images_, names, images_path)
+    names_ = ["image{}".format(i) + ".jpg" for i in range(len(images_))]
+    save_images_in_path(images_, names_, images_path)
