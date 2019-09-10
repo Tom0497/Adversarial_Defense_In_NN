@@ -214,4 +214,10 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Images' URLs, wnID and class file
+image_metadata/
+
+# Images
+images/
+
 # End of https://www.gitignore.io/api/python,pycharm+all
