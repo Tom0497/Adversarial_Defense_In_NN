@@ -53,16 +53,10 @@ def get_image_from_url(url):
     try:
         image = Image.open(urllib.request.urlopen(url))
         return image
-    except urllib.error.HTTPError as e:
-        print(e)
-        return None
-    except urllib.error.URLError as e:
-        print(e)
-        return None
-    except IOError as e:
-        print(e)
-        return None
-    except http.client.HTTPException as e:
+    except (urllib.error.HTTPError,
+            urllib.error.URLError,
+            IOError,
+            http.client.HTTPException) as e:
         print(e)
         return None
 
