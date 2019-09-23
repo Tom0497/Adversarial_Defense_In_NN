@@ -118,11 +118,28 @@ def filter_urls_by_wnid(data, wnid):
     return urls_filtered
 
 
+def get_urls_by_wnid(wnid, path):
+    """
+    Returns all urls associated to a specific wnid.
+
+    :param wnid:        Desired wnid to filter urls
+    :param path:        Path to the .txt file that contains the raw version of the wnid and url data for the images
+    :return:            List of urls associated to specified wnid.
+    """
+    url_list = []
+    with open(path, encoding="latin-1") as file:
+        for line in file:
+            line_list = line.strip().split("\t")
+            wnid_read = line_list[0].partition("_")[0]
+            if wnid_read == wnid:
+                url_list.append(line_list[1])
+    return url_list
+
+
 if __name__ == "__main__":
     wnid_df = get_dict_classes(dict_path_)
     class_filter = "n00005787"
-    data_ = get_urls_and_wnid(urls_path, 2048)
-    urls_ = filter_urls_by_wnid(data_, "n00005787")
+    urls_ = get_urls_by_wnid("n00005787", urls_path)
     images_ = get_images_from_urls(urls_)
     class_path = images_path + "/" + class_filter
     if not os.path.isdir(class_path):
