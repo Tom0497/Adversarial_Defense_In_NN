@@ -72,7 +72,10 @@ def save_image_in_path(image, image_name, path=os.getcwd()):
     :param path: the folder path where to save the image
     :return:
     """
-    image.save(os.path.join(path, image_name), 'JPEG')
+    try:
+        image.save(os.path.join(path, image_name), 'JPEG')
+    except IOError as e:
+        print(e)
 
 
 def get_images_from_urls(urls):
@@ -142,7 +145,7 @@ def generate_urls_file(wnid, raw_path, url_folder_path):
     """
 
     :param wnid:            Desired wnid to filter urls
-    :param raw_path:            Path to the .txt file that contains the raw version of the wnid and url data for the images
+    :param raw_path:        Path to the .txt file that contains the raw version of the wnid and url data for the images
     :param url_folder_path: Path to the folder in which url files will be saved
     :return:
     """
@@ -157,6 +160,7 @@ def generate_urls_file(wnid, raw_path, url_folder_path):
 def download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_path, download_limit=16):
     """
 
+    :param json_path:
     :param wnid:
     :param image_folder:
     :param raw_path:
@@ -175,21 +179,15 @@ def download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_
         os.mkdir(image_destination_path)
 
     with open(url_file, encoding="latin-1") as file:
-        url_counter = 0
-        download_counter = 0
+        counter = 0
         for line in file:
-            image_name = f'{wnid}_{url_counter}.jpg'
-            if download_counter < download_limit:
-                if os.path.isfile(os.path.join(image_destination_path, image_name)):
-                    url_counter += 1
-                    continue
+            if counter < download_limit:
                 image = get_image_from_url(line)
                 if image is None:
-                    url_counter += 1
                     continue
+                image_name = f'{wnid}_{counter}.jpg'
                 save_image_in_path(image, image_name, path=image_destination_path)
-                url_counter += 1
-                download_counter += 1
+                counter += 1
             else:
                 return
 
@@ -197,7 +195,8 @@ def download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_
 def download_images_by_label(label, image_folder, raw_path, url_folder_path, json_path, download_limit=16):
     """
 
-    :param wnid:
+    :param json_path:
+    :param label:
     :param image_folder:
     :param raw_path:
     :param url_folder_path:
@@ -211,7 +210,8 @@ def download_images_by_label(label, image_folder, raw_path, url_folder_path, jso
 def download_images_by_int_label(int_label, image_folder, raw_path, url_folder_path, json_path, download_limit=16):
     """
 
-    :param wnid:
+    :param json_path:
+    :param int_label:
     :param image_folder:
     :param raw_path:
     :param url_folder_path:
@@ -269,15 +269,21 @@ def get_labels_for_wnid(wnid, json_path):
 
 
 if __name__ == "__main__":
-    #wnid_df = get_dict_classes(dict_path_)
-    class_filter = "n02123159"
-    download_images_by_int_label(282, images_path, urls_path, urls_folder_path, dict_path_, 10)
-    #number, label = get_labels_for_wnid(class_filter, dict_path_)
-    #generate_urls_file(class_filter, urls_path, urls_folder_path)
-    #urls_ = get_urls_by_wnid("n00005787", urls_path)
-    #images_ = get_images_from_urls(urls_)
-    #class_path = images_path + "/" + class_filter
-    #if not os.path.isdir(class_path):
-        #os.mkdir(class_path)
-    #names_ = ["image{}".format(i) + ".jpg" for i in range(len(images_))]
-    #save_images_in_path(images_, names_, class_path)
+    for i in range(999):
+        try:
+            download_images_by_int_label(i, images_path, urls_path, urls_folder_path, dict_path_, download_limit=300)
+        except:
+            pass
+
+    """
+    wnid_df = get_dict_classes(dict_path_)
+    number, label = get_labels_for_wnid(class_filter, dict_path_)
+    generate_urls_file(class_filter, urls_path, urls_folder_path)
+    urls_ = get_urls_by_wnid("n00005787", urls_path)
+    images_ = get_images_from_urls(urls_)
+    class_path = images_path + "/" + class_filter
+    if not os.path.isdir(class_path):
+        os.mkdir(class_path)
+    names_ = ["image{}".format(i) + ".jpg" for i in range(len(images_))]
+    save_images_in_path(images_, names_, class_path)
+    """
