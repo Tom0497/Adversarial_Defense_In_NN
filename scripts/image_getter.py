@@ -152,7 +152,7 @@ def generate_urls_file(wnid, raw_path, url_folder_path):
     url_list = get_urls_by_wnid(wnid, raw_path)
     if not os.path.isdir(url_folder_path):
         os.mkdir(url_folder_path)
-    with open(url_folder_path + rf'/{wnid}.txt', 'w') as f:
+    with open(url_folder_path + rf'/{wnid}.txt', 'w', encoding='latin-1') as f:
         for url in url_list:
             f.write("%s\n" % url)
 
@@ -280,7 +280,8 @@ def get_labels_for_wnid(wnid, json_path):
 
 
 if __name__ == "__main__":
-    download_images_by_int_label(1, images_path, urls_path, urls_folder_path, dict_path_, download_limit=1, starting_url=1000)
+    for i in range(1000):
+        download_images_by_int_label(i, images_path, urls_path, urls_folder_path, dict_path_, download_limit=1, starting_url=100)
 
 
     """

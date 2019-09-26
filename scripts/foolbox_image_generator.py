@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import glob
 import os
 from absl import logging
+from sklearn.metrics import accuracy_score
 
 logging._warn_preinit_stderr = 0
 
@@ -150,6 +151,8 @@ def adversarial_examples_comparison(img_path, _label, attack="fgsm"):
         _attack = foolbox.attacks.FGSM(_model)
     elif attack == "dfl2":
         _attack = foolbox.attacks.DeepFoolL2Attack(_model)
+    elif attack == "SPixelAttack":
+        _attack = foolbox.attacks.SinglePixelAttack(_model)
     else:
         return -1
 
@@ -164,5 +167,90 @@ def adversarial_examples_comparison(img_path, _label, attack="fgsm"):
         print(decode_predictions(np.reshape([_model.predictions(adv)], (-1, 1000))))
 
 
+def one_hot(pred):
+    """
+    It encodes the input into a one-hot encoding, usually for classification tasks
+
+    :param pred:        the predicted labels of a classification problem
+    :return:            an array with one-hot encoding format
+    """
+    pred_classes = np.argmax(pred, 1)
+    one_hots = np.zeros_like(pred)
+    one_hots[np.arange(len(pred_classes)), pred_classes] = 1
+    return one_hots
+
+
+def get_accuracy(real_target, model_pred):
+    """
+    Gives the accuracy of a model based on the ideal and the predicted labels
+
+    :param real_target:         the expected labels to be predicted
+    :param model_pred:          the actual predicted labels from the model
+    :return:                    the accuracy of the model
+    """
+    _y_pred = one_hot(model_pred)
+    _y_real = np.zeros_like(_y_pred)
+    _y_real[np.arange(_y_pred.shape[0]), real_target] = 1
+
+    return accuracy_score(_y_real, _y_pred)
+
+
+def get_accuracy_top5(real_target, model_pred):
+    """
+    Gives the accuracy of a model based on the ideal and the predicted labels, using the top-5 predictions
+    this means that the real target can be any of the top-5 predictions of the model
+
+    :param real_target:         the expected labels to be predicted
+    :param model_pred:          the actual predicted labels from the model
+    :return:                    the top-5 accuracy of the model
+    """
+    top_5 = (-model_pred).argsort(axis=-1)[:, :5]
+    is_in_top5 = [real_target[i] if np.in1d(top_5[i, :], real_target[i]).sum()
+                  else top_5[i, 0] for i in range(top_5.shape[0])]
+
+    _y_pred = np.zeros_like(model_pred)
+    _y_pred[np.arange(_y_pred.shape[0]), is_in_top5] = 1
+
+    _y_real = np.zeros_like(_y_pred)
+    _y_real[np.arange(_y_pred.shape[0]), real_target] = 1
+
+    return accuracy_score(_y_real, _y_pred)
+
+
+# Helper function to extract labels from probability vector
+def get_imagenet_label(probs):
+    return decode_predictions(probs, top=1)[0][0]
+
+
+def plot_im_with_confidence(_images, y_pred, im_num=0):
+    _, _image_class, _class_confidence = get_imagenet_label(np.reshape(y_pred[im_num, :], (-1, 1000)))
+    plt.figure()
+    plt.imshow(restore_original_image_from_array(images[im_num].copy()) / 255)
+    plt.title('{} : {:.2f}% Confidence'.format(_image_class, _class_confidence * 100))
+    plt.axis('off')
+    plt.show()
+
+
 if __name__ == "__main__":
-    adversarial_examples_comparison(images_path, 100, "fgs")
+
+    model = ResNet50(weights='imagenet')
+    fmodelf = foolbox.models.KerasModel(model, bounds=(-255, 255))
+
+    images = image_getter(images_path)
+    images = np.stack([preprocess_input(img.copy()) for img in images])
+    label = 100
+
+    y_pred = model.predict(images)
+    y_real = np.ones(len(images), dtype=int)*label
+
+    accuracy = get_accuracy(y_real, y_pred)
+    accuracy_top5 = get_accuracy_top5(y_real, y_pred)
+
+    attack = foolbox.attacks.SinglePixelAttack(fmodelf)
+    adversarial_img = np.stack([generate_adversarial_example(attack, img, label) for img in images])
+
+    y_pred_adv = model.predict(adversarial_img)
+    accuracy_adv = get_accuracy(y_real, y_pred_adv)
+
+    for i in range(len(images)):
+        plot_im_with_confidence(images, y_pred_adv, i)
