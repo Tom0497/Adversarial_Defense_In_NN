@@ -157,7 +157,8 @@ def generate_urls_file(wnid, raw_path, url_folder_path):
             f.write("%s\n" % url)
 
 
-def download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_path, download_limit=16):
+def download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_path, download_limit=16,
+                            starting_url=0):
     """
 
     :param json_path:
@@ -166,6 +167,7 @@ def download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_
     :param raw_path:
     :param url_folder_path:
     :param download_limit:
+    :param starting_url:
     :return:
     """
     url_file = url_folder_path + rf'/{wnid}.txt'
@@ -180,6 +182,8 @@ def download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_
 
     with open(url_file, encoding="latin-1") as file:
         url_counter = 0
+        while starting_url > url_counter:
+            url_counter += 1
         download_counter = 0
         for line in file:
             image_name = f'{wnid}_{url_counter}.jpg'
@@ -198,7 +202,7 @@ def download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_
                 return
 
 
-def download_images_by_label(label, image_folder, raw_path, url_folder_path, json_path, download_limit=16):
+def download_images_by_label(label, image_folder, raw_path, url_folder_path, json_path, download_limit=16, starting_url=0):
     """
 
     :param json_path:
@@ -210,10 +214,10 @@ def download_images_by_label(label, image_folder, raw_path, url_folder_path, jso
     :return:
     """
     wnid = get_wnid_for_label(label, json_path)
-    download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_path, download_limit)
+    download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_path, download_limit, starting_url)
 
 
-def download_images_by_int_label(int_label, image_folder, raw_path, url_folder_path, json_path, download_limit=16):
+def download_images_by_int_label(int_label, image_folder, raw_path, url_folder_path, json_path, download_limit=16, starting_url=0):
     """
 
     :param json_path:
@@ -225,7 +229,7 @@ def download_images_by_int_label(int_label, image_folder, raw_path, url_folder_p
     :return:
     """
     wnid = get_wnid_for_int_label(int_label, json_path)
-    download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_path, download_limit)
+    download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_path, download_limit, starting_url)
 
 
 def get_wnid_for_int_label(int_label, json_path):
@@ -275,11 +279,8 @@ def get_labels_for_wnid(wnid, json_path):
 
 
 if __name__ == "__main__":
-    for i in range(999):
-        try:
-            download_images_by_int_label(i, images_path, urls_path, urls_folder_path, dict_path_, download_limit=300)
-        except:
-            pass
+    download_images_by_int_label(1, images_path, urls_path, urls_folder_path, dict_path_, download_limit=1, starting_url=1000)
+
 
     """
     wnid_df = get_dict_classes(dict_path_)
