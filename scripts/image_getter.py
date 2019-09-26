@@ -175,15 +175,21 @@ def download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_
         os.mkdir(image_destination_path)
 
     with open(url_file, encoding="latin-1") as file:
-        counter = 0
+        url_counter = 0
+        download_counter = 0
         for line in file:
-            if counter < download_limit:
+            image_name = f'{wnid}_{url_counter}.jpg'
+            if download_counter < download_limit:
+                if os.path.isfile(os.path.join(image_destination_path, image_name)):
+                    url_counter += 1
+                    continue
                 image = get_image_from_url(line)
                 if image is None:
+                    url_counter += 1
                     continue
-                image_name = f'{wnid}_{counter}.jpg'
                 save_image_in_path(image, image_name, path=image_destination_path)
-                counter += 1
+                url_counter += 1
+                download_counter += 1
             else:
                 return
 
@@ -265,7 +271,7 @@ def get_labels_for_wnid(wnid, json_path):
 if __name__ == "__main__":
     #wnid_df = get_dict_classes(dict_path_)
     class_filter = "n02123159"
-    download_images_by_int_label(20, images_path, urls_path, urls_folder_path, dict_path_)
+    download_images_by_int_label(282, images_path, urls_path, urls_folder_path, dict_path_, 10)
     #number, label = get_labels_for_wnid(class_filter, dict_path_)
     #generate_urls_file(class_filter, urls_path, urls_folder_path)
     #urls_ = get_urls_by_wnid("n00005787", urls_path)
