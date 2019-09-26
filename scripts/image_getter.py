@@ -182,10 +182,11 @@ def download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_
 
     with open(url_file, encoding="latin-1") as file:
         url_counter = 0
-        while starting_url > url_counter:
-            url_counter += 1
         download_counter = 0
         for line in file:
+            if url_counter < starting_url:
+                url_counter += 1
+                continue
             image_name = f'{wnid}_{url_counter}.jpg'
             if download_counter < download_limit:
                 if os.path.isfile(os.path.join(image_destination_path, image_name)):
