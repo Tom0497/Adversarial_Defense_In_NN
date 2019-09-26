@@ -179,15 +179,21 @@ def download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_
         os.mkdir(image_destination_path)
 
     with open(url_file, encoding="latin-1") as file:
-        counter = 0
+        url_counter = 0
+        download_counter = 0
         for line in file:
-            if counter < download_limit:
+            image_name = f'{wnid}_{url_counter}.jpg'
+            if download_counter < download_limit:
+                if os.path.isfile(os.path.join(image_destination_path, image_name)):
+                    url_counter += 1
+                    continue
                 image = get_image_from_url(line)
                 if image is None:
+                    url_counter += 1
                     continue
-                image_name = f'{wnid}_{counter}.jpg'
                 save_image_in_path(image, image_name, path=image_destination_path)
-                counter += 1
+                url_counter += 1
+                download_counter += 1
             else:
                 return
 
