@@ -280,8 +280,13 @@ def get_labels_for_wnid(wnid, json_path):
 
 
 if __name__ == "__main__":
-    for i in range(1000):
-        download_images_by_int_label(i, images_path, urls_path, urls_folder_path, dict_path_, download_limit=1, starting_url=100)
+    for i in range(500, 600):
+        download_images_by_int_label(i, images_path,
+                                     urls_path,
+                                     urls_folder_path,
+                                     dict_path_,
+                                     download_limit=1,
+                                     starting_url=100)
 
     """
     wnid_df = get_dict_classes(dict_path_)
