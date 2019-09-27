@@ -10,8 +10,7 @@ import glob
 import os
 from absl import logging
 from sklearn.metrics import accuracy_score
-
-from scripts.image_getter import save_image_in_path, save_images_in_path
+from Scripts.image_getter import save_image_in_path, save_images_in_path
 
 logging._warn_preinit_stderr = 0
 
