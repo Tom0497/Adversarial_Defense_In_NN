@@ -11,6 +11,8 @@ import os
 from absl import logging
 from sklearn.metrics import accuracy_score
 
+from scripts.image_getter import save_image_in_path, save_images_in_path
+
 logging._warn_preinit_stderr = 0
 
 NUM_PARALLEL_EXEC_UNITS = 4
@@ -45,10 +47,12 @@ def image_getter(path):
     :return:            a list of images
     """
     image_list = []
+    image_name = []
     for filename in glob.glob(path):
         im = image.load_img(filename, target_size=(WIDTH, HEIGHT))
         image_list.append(image.img_to_array(im))
-    return image_list
+        image_name.append(filename)
+    return image_list, image_name
 
 
 def instantiate_resnet50():
@@ -227,7 +231,8 @@ def get_imagenet_label(probs):
 def plot_im_with_confidence(_images, y_pred, im_num=0):
     _, _image_class, _class_confidence = get_imagenet_label(np.reshape(y_pred[im_num, :], (-1, 1000)))
     plt.figure()
-    plt.imshow(restore_original_image_from_array(images[im_num].copy()) / 255)
+    adversarial_image_restored = restore_original_image_from_array(images[im_num].copy()) / 255
+    plt.imshow(adversarial_image_restored)
     plt.title('{} : {:.2f}% Confidence'.format(_image_class, _class_confidence * 100))
     plt.axis('off')
     plt.show()
@@ -239,6 +244,8 @@ if __name__ == "__main__":
     model = ResNet50(weights='imagenet')
     fmodelf = foolbox.models.KerasModel(model, bounds=(-255, 255))
 
+    method = "fgsm"
+
     accuracy_list = []
     accuracy_adv_list = []
     accuracy_top5_list = []
@@ -248,13 +255,14 @@ if __name__ == "__main__":
 
     for subdir, dirs, files in os.walk(images_path):
         for img_dir in dirs:
-            images = image_getter(img_dir)
+            images, image_names = image_getter(img_dir)
             images = np.stack([preprocess_input(img.copy()) for img in images])
 
-            label = img_dir.split("/")[-1].split("_")[0]
+            folder_name = img_dir.split("/")[-1]
+            label = folder_name.split("_")[0]
 
             y_pred = model.predict(images)
-            y_real = np.ones(len(images), dtype=int)*label
+            y_real = np.ones(len(images), dtype=int) * label
 
             accuracy = get_accuracy(y_real, y_pred)
             accuracy_top5 = get_accuracy_top5(y_real, y_pred)
@@ -271,13 +279,24 @@ if __name__ == "__main__":
             accuracy_top5_list.append(accuracy_top5)
             accuracy_adv_top5_list.append(accuracy_top5_adv)
 
+            adversarial_img_path = os.path.join(os.path.dirname(current_directory), r'adversarial')
+            if not os.path.isdir(adversarial_img_path):
+                os.mkdir(adversarial_img_path)
+
             confidence_im_adv_list = []
             confidence_im_list = []
             for i in range(len(images)):
                 _, confidence_adv_im = plot_im_with_confidence(images, y_pred_adv, i)
-                _, confidence_im = plot_im_with_confidence(images, y_pred_adv, i)
+                _, confidence_im = plot_im_with_confidence(images, y_pred, i)
                 confidence_im_list.append(confidence_im)
                 confidence_im_adv_list.append(confidence_adv_im)
+
+            adv_images_names = [name.split("/")[-1] + f"_adv_{method}" for name in image_names]
+
+            images_adv_restored = [restore_original_image_from_array(im_adv.copy()) / 255 for im_adv in adversarial_img]
+
+            save_images_in_path(images_adv_restored, adv_images_names, folder_name)
+
             confidence_class = mean(confidence_im_list)
             confidence_class_adv = mean(confidence_im_adv_list)
 
