@@ -1,3 +1,5 @@
+from statistics import mean
+
 import foolbox
 import keras
 import numpy as np
@@ -229,12 +231,20 @@ def plot_im_with_confidence(_images, y_pred, im_num=0):
     plt.title('{} : {:.2f}% Confidence'.format(_image_class, _class_confidence * 100))
     plt.axis('off')
     plt.show()
+    return _image_class, _class_confidence
 
 
 if __name__ == "__main__":
 
     model = ResNet50(weights='imagenet')
     fmodelf = foolbox.models.KerasModel(model, bounds=(-255, 255))
+
+    accuracy_list = []
+    accuracy_adv_list = []
+    accuracy_top5_list = []
+    accuracy_adv_top5_list = []
+    confidence_list = []
+    confidence_adv_list = []
 
     for subdir, dirs, files in os.walk(images_path):
         for img_dir in dirs:
@@ -254,6 +264,22 @@ if __name__ == "__main__":
 
             y_pred_adv = model.predict(adversarial_img)
             accuracy_adv = get_accuracy(y_real, y_pred_adv)
+            accuracy_top5_adv = get_accuracy_top5(y_real, y_pred_adv)
 
+            accuracy_list.append(accuracy)
+            accuracy_adv_list.append(accuracy_adv)
+            accuracy_top5_list.append(accuracy_top5)
+            accuracy_adv_top5_list.append(accuracy_top5_adv)
+
+            confidence_im_adv_list = []
+            confidence_im_list = []
             for i in range(len(images)):
-                plot_im_with_confidence(images, y_pred_adv, i)
+                _, confidence_adv_im = plot_im_with_confidence(images, y_pred_adv, i)
+                _, confidence_im = plot_im_with_confidence(images, y_pred_adv, i)
+                confidence_im_list.append(confidence_im)
+                confidence_im_adv_list.append(confidence_adv_im)
+            confidence_class = mean(confidence_im_list)
+            confidence_class_adv = mean(confidence_im_adv_list)
+
+            confidence_list.append(confidence_class)
+            confidence_adv_list.append(confidence_class_adv)
