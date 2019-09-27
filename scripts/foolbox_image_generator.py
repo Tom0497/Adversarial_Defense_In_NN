@@ -21,7 +21,7 @@ os.environ["KMP_AFFINITY"] = "none"
 
 HEIGHT, WIDTH = 224, 224
 current_directory = os.getcwd()
-images_path = os.path.dirname(current_directory) + r"/images/100_black_swan/*.jpg"
+images_path = os.path.dirname(current_directory) + r"/images/"
 
 
 def generate_adversarial_example(_attack, _image, _label):
@@ -49,9 +49,12 @@ def image_getter(path):
     image_list = []
     image_name = []
     for filename in glob.glob(path):
-        im = image.load_img(filename, target_size=(WIDTH, HEIGHT))
-        image_list.append(image.img_to_array(im))
-        image_name.append(filename)
+        try:
+            im = image.load_img(filename, target_size=(WIDTH, HEIGHT))
+            image_list.append(image.img_to_array(im))
+            image_name.append(filename)
+        except IOError as e:
+            print(e)
     return image_list, image_name
 
 
@@ -253,21 +256,25 @@ if __name__ == "__main__":
     confidence_list = []
     confidence_adv_list = []
 
+    c = 0
     for subdir, dirs, files in os.walk(images_path):
         for img_dir in dirs:
-            images, image_names = image_getter(img_dir)
+            c += 1
+            if c == 10:
+                break
+            images, image_names = image_getter(images_path + img_dir + r"/*.jpg")
             images = np.stack([preprocess_input(img.copy()) for img in images])
 
             folder_name = img_dir.split("/")[-1]
-            label = folder_name.split("_")[0]
+            label = int(folder_name.split("_")[0])
 
             y_pred = model.predict(images)
-            y_real = np.ones(len(images), dtype=int) * label
+            y_real = np.ones(len(images), dtype=int)*label
 
             accuracy = get_accuracy(y_real, y_pred)
             accuracy_top5 = get_accuracy_top5(y_real, y_pred)
 
-            attack = foolbox.attacks.SinglePixelAttack(fmodelf)
+            attack = foolbox.attacks.FGSM(fmodelf)
             adversarial_img = np.stack([generate_adversarial_example(attack, img, label) for img in images])
 
             y_pred_adv = model.predict(adversarial_img)
@@ -290,6 +297,8 @@ if __name__ == "__main__":
                 _, confidence_im = plot_im_with_confidence(images, y_pred, i)
                 confidence_im_list.append(confidence_im)
                 confidence_im_adv_list.append(confidence_adv_im)
+            confidence_class = np.array(confidence_im_list).mean()
+            confidence_class_adv = np.array(confidence_im_adv_list).mean()
 
             adv_images_names = [name.split("/")[-1] + f"_adv_{method}" for name in image_names]
 
@@ -297,8 +306,11 @@ if __name__ == "__main__":
 
             save_images_in_path(images_adv_restored, adv_images_names, folder_name)
 
-            confidence_class = mean(confidence_im_list)
-            confidence_class_adv = mean(confidence_im_adv_list)
-
             confidence_list.append(confidence_class)
             confidence_adv_list.append(confidence_class_adv)
+    print(f"Mean Confidence in Non-Adversarial-Examples: {np.array(confidence_list).mean()}")
+    print(f"Mean Confidence in Adversarial-Examples: {np.array(confidence_adv_list).mean()}")
+    print(f"Mean top-1 accuracy in Non-Adversarial Examples: {np.array(accuracy_list).mean()}")
+    print(f"Mean top-5 accuracy in Adversarial Examples: {np.array(accuracy_top5_list).mean()}")
+    print(f"Mean top-1 accuracy in Non-Adversarial Examples: {np.array(accuracy_adv_list).mean()}")
+    print(f"Mean top-5 accuracy in Non-Adversarial Examples: {np.array(accuracy_adv_top5_list).mean()}")
