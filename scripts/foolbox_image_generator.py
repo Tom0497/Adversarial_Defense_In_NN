@@ -236,21 +236,24 @@ if __name__ == "__main__":
     model = ResNet50(weights='imagenet')
     fmodelf = foolbox.models.KerasModel(model, bounds=(-255, 255))
 
-    images = image_getter(images_path)
-    images = np.stack([preprocess_input(img.copy()) for img in images])
-    label = 100
+    for subdir, dirs, files in os.walk(images_path):
+        for img_dir in dirs:
+            images = image_getter(img_dir)
+            images = np.stack([preprocess_input(img.copy()) for img in images])
 
-    y_pred = model.predict(images)
-    y_real = np.ones(len(images), dtype=int)*label
+            label = img_dir.split("/")[-1].split("_")[0]
 
-    accuracy = get_accuracy(y_real, y_pred)
-    accuracy_top5 = get_accuracy_top5(y_real, y_pred)
+            y_pred = model.predict(images)
+            y_real = np.ones(len(images), dtype=int)*label
 
-    attack = foolbox.attacks.SinglePixelAttack(fmodelf)
-    adversarial_img = np.stack([generate_adversarial_example(attack, img, label) for img in images])
+            accuracy = get_accuracy(y_real, y_pred)
+            accuracy_top5 = get_accuracy_top5(y_real, y_pred)
 
-    y_pred_adv = model.predict(adversarial_img)
-    accuracy_adv = get_accuracy(y_real, y_pred_adv)
+            attack = foolbox.attacks.SinglePixelAttack(fmodelf)
+            adversarial_img = np.stack([generate_adversarial_example(attack, img, label) for img in images])
 
-    for i in range(len(images)):
-        plot_im_with_confidence(images, y_pred_adv, i)
+            y_pred_adv = model.predict(adversarial_img)
+            accuracy_adv = get_accuracy(y_real, y_pred_adv)
+
+            for i in range(len(images)):
+                plot_im_with_confidence(images, y_pred_adv, i)
