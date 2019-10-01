@@ -1,5 +1,3 @@
-from statistics import mean
-
 import foolbox
 import keras
 import numpy as np
@@ -11,6 +9,7 @@ import os
 from absl import logging
 from sklearn.metrics import accuracy_score
 from Scripts.image_getter import save_image_in_path, save_images_in_path
+from PIL import Image
 
 logging._warn_preinit_stderr = 0
 
@@ -146,7 +145,7 @@ def adversarial_examples_comparison(img_path, _label, attack="fgsm"):
     :param img_path:        the path to the folder where the images are
     :param _label:          the label of the images' class
     """
-    _images = image_getter(img_path)
+    _images, _ = image_getter(img_path)
     _images = [preprocess_input(img.copy()) for img in _images]
 
     # the resnet50 model is instantiated
@@ -167,12 +166,21 @@ def adversarial_examples_comparison(img_path, _label, attack="fgsm"):
     # generation of adversarial examples
     _adversarial_examples = [generate_adversarial_example(_attack, img, _label) for img in _images]
 
+    _images = np.stack(_images)
+    _adversarial_examples = np.stack(_adversarial_examples)
+
+    y_pred = _model.predict(_images)
+    y_real = np.ones(len(_images), dtype=int) * 22
+
+
     # comparison of both images
     for img, adv in zip(_images, _adversarial_examples):
         plot_image_comparison(restore_original_image_from_array(img.copy()),
                               restore_original_image_from_array(adv.copy()[:, :, ::-1]))
         print(decode_predictions(np.reshape([_model.predictions(img)], (-1, 1000))))
         print(decode_predictions(np.reshape([_model.predictions(adv)], (-1, 1000))))
+
+
 
 
 def one_hot(pred):
@@ -232,19 +240,20 @@ def get_imagenet_label(probs):
 
 def plot_im_with_confidence(_images, y_pred, im_num=0):
     _, _image_class, _class_confidence = get_imagenet_label(np.reshape(y_pred[im_num, :], (-1, 1000)))
-    plt.figure()
-    adversarial_image_restored = restore_original_image_from_array(images[im_num].copy()) / 255
-    plt.imshow(adversarial_image_restored)
-    plt.title('{} : {:.2f}% Confidence'.format(_image_class, _class_confidence * 100))
-    plt.axis('off')
-    plt.show()
+    if False:
+        plt.figure()
+        adversarial_image_restored = restore_original_image_from_array(images[im_num].copy()) / 255
+        plt.imshow(adversarial_image_restored)
+        plt.title('{} : {:.2f}% Confidence'.format(_image_class, _class_confidence * 100))
+        plt.axis('off')
+        plt.show()
     return _image_class, _class_confidence
 
 
 if __name__ == "__main__":
-
     model = ResNet50(weights='imagenet')
     fmodelf = foolbox.models.KerasModel(model, bounds=(-255, 255))
+    attack = foolbox.attacks.GradientSignAttack(fmodelf)
 
     method = "fgsm"
 
@@ -273,7 +282,6 @@ if __name__ == "__main__":
             accuracy = get_accuracy(y_real, y_pred)
             accuracy_top5 = get_accuracy_top5(y_real, y_pred)
 
-            attack = foolbox.attacks.FGSM(fmodelf)
             adversarial_img = np.stack([generate_adversarial_example(attack, img, label) for img in images])
 
             y_pred_adv = model.predict(adversarial_img)
@@ -299,17 +307,21 @@ if __name__ == "__main__":
             confidence_class = np.array(confidence_im_list).mean()
             confidence_class_adv = np.array(confidence_im_adv_list).mean()
 
-            adv_images_names = [name.split("/")[-1] + f"_adv_{method}" for name in image_names]
+            adv_images_names = [name.split("/")[-1].split("\\")[-1].replace(".jpg", f"_adv_{method}.jpg") for name in image_names]
 
-            images_adv_restored = [restore_original_image_from_array(im_adv.copy()) / 255 for im_adv in adversarial_img]
+            images_adv_restored = [restore_original_image_from_array(im_adv.copy()) for im_adv in adversarial_img]
+            images_adv_restored = [Image.fromarray(img[:, :, ::-1].astype('uint8'), 'RGB') for img in images_adv_restored]
 
-            save_images_in_path(images_adv_restored, adv_images_names, folder_name)
+            if not os.path.isdir(os.path.join(adversarial_img_path, img_dir)):
+                os.mkdir(os.path.join(adversarial_img_path, img_dir))
+
+            save_images_in_path(images_adv_restored, adv_images_names, os.path.join(adversarial_img_path, img_dir))
 
             confidence_list.append(confidence_class)
             confidence_adv_list.append(confidence_class_adv)
     print(f"Mean Confidence in Non-Adversarial-Examples: {np.array(confidence_list).mean()}")
     print(f"Mean Confidence in Adversarial-Examples: {np.array(confidence_adv_list).mean()}")
     print(f"Mean top-1 accuracy in Non-Adversarial Examples: {np.array(accuracy_list).mean()}")
-    print(f"Mean top-5 accuracy in Adversarial Examples: {np.array(accuracy_top5_list).mean()}")
-    print(f"Mean top-1 accuracy in Non-Adversarial Examples: {np.array(accuracy_adv_list).mean()}")
-    print(f"Mean top-5 accuracy in Non-Adversarial Examples: {np.array(accuracy_adv_top5_list).mean()}")
+    print(f"Mean top-5 accuracy in Non-Adversarial Examples: {np.array(accuracy_top5_list).mean()}")
+    print(f"Mean top-1 accuracy in Adversarial Examples: {np.array(accuracy_adv_list).mean()}")
+    print(f"Mean top-5 accuracy in Adversarial Examples: {np.array(accuracy_adv_top5_list).mean()}")
