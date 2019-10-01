@@ -9,6 +9,15 @@ import pickle
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+use_colab = True
+
+if use_colab:
+    # for google collaboratory purposes
+    DIR_BINARIES = r"/content/drive/My Drive/ImageNetDataSets/ImageNet_64/"
+else:
+    # for local use
+    DIR_BINARIES = os.path.dirname(os.getcwd()) + r"/data/"
+
 
 def unpickle(filename):
     """
@@ -218,7 +227,6 @@ class ImageNetData:
 
 
 if __name__ == '__main__':
-    DIR_BINARIES = os.path.dirname(os.getcwd()) + r"/data/"
     imageNet8 = ImageNetData(batch_size=64, img_size=8)
     batch, batch_idx = imageNet8.next_batch()
     print(batch_idx, imageNet8.n_batches, imageNet8.get_epoch())
