@@ -181,8 +181,6 @@ def adversarial_examples_comparison(img_path, _label, attack="fgsm"):
         print(decode_predictions(np.reshape([_model.predictions(adv)], (-1, 1000))))
 
 
-
-
 def one_hot(pred):
     """
     It encodes the input into a one-hot encoding, usually for classification tasks
