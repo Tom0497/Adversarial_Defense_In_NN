@@ -116,6 +116,5 @@ if __name__ == "__main__":
         plt.subplot(133)
         plt.imshow(img_adv/255)
         plt.axis('off')
-        adversarial.append(img_adv)
 
         plt.show()
