@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import tensorflow as tf
+import foolbox
 
 from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
 from tensorflow.keras import backend as k
@@ -53,6 +54,33 @@ def fastGradientAttack(model, image, epsilon, alpha, type=None, preprocess=False
     return np.clip(attack_result, 0, 1)
 
 
+def deepFoolAttack(model, image, norm=2, preprocess=False):
+    """
+    It generates an adversarial example of the given image using the Deep Fool gradient based method.
+
+    :param model:       The model that's being attacked, which must have a computable gradient
+    :param image:       The image that it'll serve as source for the adversarial example
+    :param norm:        The norm of the optimization problem behind Deep Fool, either 2 or np.inf
+    :param preprocess:  Indicates if the image's been pre-processed before feeding to the network
+    :return:            The generated adversarial example as an image with values between 0 and 1.
+    """
+    if preprocess:
+        image = preprocess_input(image)
+    if not (norm in [2, np.inf]):
+        norm = 2
+
+    y_predicted = model.predict(image.copy()[np.newaxis, :]).argmax()
+
+    fool_model = foolbox.models.KerasModel(model, bounds=(-255, 255))
+    attack = foolbox.attacks.DeepFoolAttack(fool_model)(image,
+                                                        label=y_predicted,
+                                                        p=norm)
+
+    attack_result = restore_original_image_from_array(attack)/255
+
+    return np.clip(attack_result, 0, 1)
+
+
 if __name__ == "__main__":
     model = ResNet50(weights='imagenet')
     model.compile(optimizer=tf.keras.optimizers.RMSprop(),
@@ -64,7 +92,6 @@ if __name__ == "__main__":
 
     images, _ = image_getter(images_path)
     epsilon = 10**-3
-    adversarial = []
 
     for img in images:
         img_adversarial = fastGradientAttack(model,
@@ -92,7 +119,3 @@ if __name__ == "__main__":
         adversarial.append(img_adv)
 
         plt.show()
-
-    adversarial = np.asarray(adversarial)
-    labels = to_categorical(np.ones(len(images)), 1000)
-    loss, accuracy = model.test_on_batch(adversarial, labels)

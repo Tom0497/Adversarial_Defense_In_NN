@@ -9,7 +9,7 @@ import pickle
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-use_colab = True
+use_colab = False
 
 if use_colab:
     # for google collaboratory purposes
