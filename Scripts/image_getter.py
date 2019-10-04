@@ -5,6 +5,7 @@ import urllib.request
 import urllib.error
 import http.client
 import json
+import ssl
 
 classes_file = r"/imagenet_class_index.json"
 urls_file = r"/fall11_urls.txt"
@@ -54,11 +55,15 @@ def get_image_from_url(url):
     """
     try:
         image = Image.open(urllib.request.urlopen(url))
+        image.verify()
+        image = Image.open(urllib.request.urlopen(url))
         return image
     except (urllib.error.HTTPError,
             urllib.error.URLError,
             IOError,
-            http.client.HTTPException) as e:
+            http.client.HTTPException,
+            SyntaxError,
+            ssl.CertificateError) as e:
         print(e)
         return None
 

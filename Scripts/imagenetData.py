@@ -9,15 +9,6 @@ import pickle
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-use_colab = False
-
-if use_colab:
-    # for google collaboratory purposes
-    DIR_BINARIES = r"/content/drive/My Drive/ImageNetDataSets/ImageNet_64/"
-else:
-    # for local use
-    DIR_BINARIES = os.path.dirname(os.getcwd()) + r"/data/"
-
 
 def unpickle(filename):
     """
@@ -73,7 +64,7 @@ class ImageNetData:
     Besides handling the data loading, it provides methods for getting the data as batches, getting the epoch, and also
     allows to get the validation and test data
     """
-    def __init__(self, batch_size=100, validation_proportion=0.1, augment_data=False, img_size=8):
+    def __init__(self, batch_size=100, validation_proportion=0.1, augment_data=False, img_size=8, use_colab=False):
         """
         It handles the creation of an instance of the ImageNetData class
 
@@ -82,6 +73,12 @@ class ImageNetData:
         :param augment_data:            bool to indicate if data augmentation will be use
         :param img_size:                the images' size, could be 8, 16, 32, 64
         """
+        if use_colab:
+            # for google collaboratory purposes
+            DIR_BINARIES = r"/content/drive/My Drive/ImageNetDataSets/ImageNet_" + str(img_size) + "/"
+        else:
+            # for local use
+            DIR_BINARIES = os.path.dirname(os.getcwd()) + r"/data/" + "ImageNet_" + str(img_size) + "/"
         data_available = os.path.isfile(DIR_BINARIES+'train_data_batch_1')
         if not data_available:
             print('Unzipping files...')
