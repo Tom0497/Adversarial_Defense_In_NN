@@ -1,11 +1,12 @@
 import foolbox
-import keras
 import numpy as np
-from keras.applications.resnet50 import ResNet50, decode_predictions, preprocess_input
-from keras.preprocessing import image
 import matplotlib.pyplot as plt
 import glob
 import os
+import tensorflow as tf
+
+from tensorflow.keras.applications.resnet50 import ResNet50, decode_predictions, preprocess_input
+from tensorflow.keras.preprocessing import image
 from absl import logging
 from sklearn.metrics import accuracy_score
 from Scripts.image_getter import save_image_in_path, save_images_in_path
@@ -62,7 +63,7 @@ def instantiate_resnet50():
 
     :return:        the model resnet50
     """
-    keras.backend.set_learning_phase(0)
+    tf.keras.backend.set_learning_phase(0)
     kmodel = ResNet50(weights='imagenet')
     fmodel = foolbox.models.KerasModel(kmodel, bounds=(-255, 255))
     return fmodel

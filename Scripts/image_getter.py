@@ -54,9 +54,9 @@ def get_image_from_url(url):
     :return: an image or None in case of error
     """
     try:
-        image = Image.open(urllib.request.urlopen(url))
+        image = Image.open(urllib.request.urlopen(url, timeout=10))
         image.verify()
-        image = Image.open(urllib.request.urlopen(url))
+        image = Image.open(urllib.request.urlopen(url, timeout=10))
         return image
     except (urllib.error.HTTPError,
             urllib.error.URLError,

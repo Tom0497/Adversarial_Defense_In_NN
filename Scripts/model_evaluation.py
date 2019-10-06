@@ -7,6 +7,7 @@ from absl import logging
 from Scripts.foolbox_image_generator import image_getter
 from tensorflow.keras.utils import plot_model
 from tensorflow.python.keras.callbacks import TensorBoard
+from Scripts.attackImplemented import fastGradientAttack
 
 
 logging._warn_preinit_stderr = 0
@@ -17,6 +18,7 @@ os.environ["KMP_AFFINITY"] = "none"
 
 current_directory = os.getcwd()
 images_path = os.path.dirname(current_directory) + r"/images/"
+images_path = os.getcwd() + r"/images/"
 
 
 if __name__ == "__main__":
@@ -52,7 +54,7 @@ if __name__ == "__main__":
 
             y_real = np.ones(len(images), dtype=int)*folder_label
             model.fit(images_preprocessed, y_real, callbacks=[tensorboard])
-            break
+
             loss_, accuracy_ = model.test_on_batch(images_preprocessed, y_real)
 
             loss.append(loss_)
@@ -63,5 +65,37 @@ if __name__ == "__main__":
 
     print('Loss en dataset : %.3f +/- %.3f' % (loss.mean(), loss.std()))
     print('Accuracy en dataset : %.3f +/- %.3f' % (accuracy.mean(), accuracy.std()))
+
+    results = []
+    for eps in np.linspace(10**-4, 1, 5):
+        accuracy = []
+
+        for subdir, dirs, files in os.walk(images_path):
+            for img_dir in dirs:
+                folder_label = int(img_dir.split("_")[0])
+
+                images, image_names = image_getter(images_path + img_dir + r"/*.jpg")
+                images = np.asarray(images)
+
+                if 0 in images.shape:
+                    continue
+
+                img_adv = [fastGradientAttack(model, img, eps, eps*.5, preprocess=True)*255 for img in images]
+                images_preprocessed = np.asarray([preprocess_input(img) for img in img_adv])
+
+                y_real = np.ones(len(images), dtype=int) * folder_label
+
+                _, accuracy_ = model.test_on_batch(images_preprocessed, y_real)
+                print('Accuracy en batch : %.3f' % accuracy_)
+
+                accuracy.append(accuracy_)
+            break
+        accuracy = np.asarray(accuracy)
+        results.append(accuracy)
+
+        print('accuracy con eps %.3f = %.3f' % (eps, accuracy.mean()))
+
+
+
 
 
