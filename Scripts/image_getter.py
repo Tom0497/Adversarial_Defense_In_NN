@@ -165,15 +165,17 @@ def generate_urls_file(wnid, raw_path, url_folder_path):
 def download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_path, download_limit=16,
                             starting_url=0):
     """
+    Downloads all the images associated with the given wnid into the specified folder, to get the urls first checks if
+    a the file of urls exists, if not, it creates it, then it begins to download the images up to a limit, also can be
+    specified in which line of the urls file the download should start.
 
-    :param json_path:
-    :param wnid:
-    :param image_folder:
-    :param raw_path:
-    :param url_folder_path:
-    :param download_limit:
-    :param starting_url:
-    :return:
+    :param json_path:           path to the file that associates a wnid code with the class's number
+    :param wnid:                the wnid code of the images that'll be downloaded
+    :param image_folder:        the destination folder where to download the images
+    :param raw_path:            path to the file that contains all the urls
+    :param url_folder_path:     path to the folder where the urls files should be
+    :param download_limit:      maximum amount of images to download when the function is called
+    :param starting_url:        the line in urls file where to start reading urls
     """
     url_file = url_folder_path + rf'/{wnid}.txt'
     if not os.path.isfile(url_file):
@@ -210,14 +212,17 @@ def download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_
 
 def download_images_by_label(label, image_folder, raw_path, url_folder_path, json_path, download_limit=16, starting_url=0):
     """
+    Downloads all the images associated with the given label into the specified folder, to get the urls first checks if
+    a the file of urls exists, if not, it creates it, then it begins to download the images up to a limit, also can be
+    specified in which line of the urls file the download should start.
 
-    :param json_path:
-    :param label:
-    :param image_folder:
-    :param raw_path:
-    :param url_folder_path:
-    :param download_limit:
-    :return:
+    :param label:               the label of the images that'll be downloaded
+    :param json_path:           path to the file that associates a wnid code with the class's number
+    :param image_folder:        the destination folder where to download the images
+    :param raw_path:            path to the file that contains all the urls
+    :param url_folder_path:     path to the folder where the urls files should be
+    :param download_limit:      maximum amount of images to download when the function is called
+    :param starting_url:        the line in urls file where to start reading urls
     """
     wnid = get_wnid_for_label(label, json_path)
     download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_path, download_limit, starting_url)
@@ -225,14 +230,17 @@ def download_images_by_label(label, image_folder, raw_path, url_folder_path, jso
 
 def download_images_by_int_label(int_label, image_folder, raw_path, url_folder_path, json_path, download_limit=16, starting_url=0):
     """
+    Downloads all the images associated with the given integer label into the specified folder, to get the urls first
+    checks if a the file of urls exists, if not, it creates it, then it begins to download the images up to a limit,
+    also can be specified in which line of the urls file the download should start.
 
-    :param json_path:
-    :param int_label:
-    :param image_folder:
-    :param raw_path:
-    :param url_folder_path:
-    :param download_limit:
-    :return:
+    :param int_label:           the number of the class of the images that'll be downloaded
+    :param json_path:           path to the file that associates a wnid code with the class's number
+    :param image_folder:        the destination folder where to download the images
+    :param raw_path:            path to the file that contains all the urls
+    :param url_folder_path:     path to the folder where the urls files should be
+    :param download_limit:      maximum amount of images to download when the function is called
+    :param starting_url:        the line in urls file where to start reading urls
     """
     wnid = get_wnid_for_int_label(int_label, json_path)
     download_images_by_wnid(wnid, image_folder, raw_path, url_folder_path, json_path, download_limit, starting_url)
@@ -240,10 +248,11 @@ def download_images_by_int_label(int_label, image_folder, raw_path, url_folder_p
 
 def get_wnid_for_int_label(int_label, json_path):
     """
+    It gets the wnid code for an integer label from the file specified in json_path
 
-    :param int_label:
-    :param json_path:
-    :return:
+    :param int_label:       the number of a class
+    :param json_path:       the path to the file that has the wnid-label relation
+    :return:                the wnid associated with the int label
     """
     key = str(int_label)
     with open(json_path) as json_file:
@@ -256,10 +265,11 @@ def get_wnid_for_int_label(int_label, json_path):
 
 def get_wnid_for_label(label, json_path):
     """
+    It gets the wnid code for a label from the file specified in json_path
 
-    :param label:
-    :param json_path:
-    :return:
+    :param label:           the label of a class
+    :param json_path:       the path to the file that has the wnid-label relation
+    :return:                the wnid associated with the label
     """
     with open(json_path) as json_file:
         data = json.load(json_file)
@@ -271,10 +281,11 @@ def get_wnid_for_label(label, json_path):
 
 def get_labels_for_wnid(wnid, json_path):
     """
+    It gets both the integer and the name associated with a wnid from the file in json_path
 
-    :param wnid:
-    :param json_path:
-    :return:
+    :param wnid:            the wnid of a class
+    :param json_path:       the path to the file that has the wnid-label relation
+    :return:                a tuple with both the integer and the name of a class
     """
     with open(json_path) as json_file:
         data = json.load(json_file)
@@ -285,23 +296,14 @@ def get_labels_for_wnid(wnid, json_path):
 
 
 if __name__ == "__main__":
-    for i in range(500, 600):
+
+    img_per_class = 1
+    start_class = 0
+    stop_class = 999
+    for i in range(start_class, stop_class + 1):
         download_images_by_int_label(i, images_path,
                                      urls_path,
                                      urls_folder_path,
                                      dict_path_,
-                                     download_limit=1,
+                                     download_limit=img_per_class,
                                      starting_url=100)
-
-    """
-    wnid_df = get_dict_classes(dict_path_)
-    number, label = get_labels_for_wnid(class_filter, dict_path_)
-    generate_urls_file(class_filter, urls_path, urls_folder_path)
-    urls_ = get_urls_by_wnid("n00005787", urls_path)
-    images_ = get_images_from_urls(urls_)
-    class_path = images_path + "/" + class_filter
-    if not os.path.isdir(class_path):
-        os.mkdir(class_path)
-    names_ = ["image{}".format(i) + ".jpg" for i in range(len(images_))]
-    save_images_in_path(images_, names_, class_path)
-    """
