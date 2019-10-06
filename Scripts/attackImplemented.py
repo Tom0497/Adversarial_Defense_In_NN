@@ -6,7 +6,7 @@ import foolbox
 
 from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input, decode_predictions
 from tensorflow.keras import backend as k
-from Scripts.foolbox_image_generator import image_getter, restore_original_image_from_array
+from Scripts.utils import image_getter, restore_original_image_from_array
 from tensorflow.keras.utils import to_categorical
 
 

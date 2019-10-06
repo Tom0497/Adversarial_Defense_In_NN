@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
 from absl import logging
-from Scripts.foolbox_image_generator import image_getter
+from Scripts.utils import image_getter
 from tensorflow.keras.utils import plot_model
 from tensorflow.python.keras.callbacks import TensorBoard
 from Scripts.attackImplemented import fastGradientAttack

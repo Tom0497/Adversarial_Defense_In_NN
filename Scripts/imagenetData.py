@@ -166,7 +166,6 @@ class ImageNetData:
         """
         return self.current_epoch
 
-    # TODO: refactor getTestSet and getValidationSet to avoid code replication
     def get_test_set(self, as_batches=False):
         """
         Get the test data from the dataset
