@@ -149,7 +149,7 @@ class ImageNetData:
             batch_data += np.random.randn(self.batch_size, 1, 1, 3)*0.05
             
         # Update self.current_batch and self.current_epoch
-        self.current_batch = (self.current_batch+1)%self.n_batches
+        self.current_batch = (self.current_batch+1) % self.n_batches
         if self.current_batch != batch_idx+1:
             self.current_epoch += 1
 

@@ -1,31 +1,56 @@
 import numpy as np
 import os
 import tensorflow as tf
+import time
+import glob
+import sys
 
 from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
-from absl import logging
-from Scripts.utils import image_getter
+from tensorflow.keras.preprocessing import image as image_keras
 from tensorflow.keras.utils import plot_model
 from tensorflow.python.keras.callbacks import TensorBoard
-from Scripts.attackImplemented import fastGradientAttack
-
-
-logging._warn_preinit_stderr = 0
-
-NUM_PARALLEL_EXEC_UNITS = 4
-os.environ['OMP_NUM_THREADS'] = str(NUM_PARALLEL_EXEC_UNITS)
-os.environ["KMP_AFFINITY"] = "none"
+from attackImplemented import fastGradientAttack
+from multiprocessing import Pool
 
 current_directory = os.getcwd()
 images_path = os.path.dirname(current_directory) + r"/images/"
-images_path = os.getcwd() + r"/images/"
+WIDTH, HEIGHT = 224, 224
+
+
+def correct_predictions(model, image, epsilon, attack_type='fgsm'):
+    img_adv = fastGradientAttack(model, image, epsilon, epsilon * .5,
+                                 attack_type=attack_type, preprocess=True)
+
+    adv_label = model.predict(preprocess_input(img_adv.copy() * 255)[np.newaxis, :])
+
+    return adv_label.argmax(), np.argpartition(np.squeeze(adv_label), -5)[-5:]
+
+
+def image_getter(path):
+    """
+    Given a path to a image folder along with an specified extension, it reads al the images that fits the extension
+    an puts them into a list
+
+    :param path:        the path to folder along with the image extension
+    :return:            a list of images
+    """
+    image_list = []
+    for filename in glob.glob(path):
+        try:
+            im = image_keras.load_img(filename, target_size=(WIDTH, HEIGHT))
+            return [image_keras.img_to_array(im)]
+        except IOError as e:
+            print(e)
+    return image_list
 
 
 if __name__ == "__main__":
-    tensorboard = TensorBoard(log_dir=os.getcwd()+"/log",
+    """
+    tensorboard = TensorBoard(log_dir=os.getcwd()+"/Scripts/log",
                               histogram_freq=0,
                               write_graph=True,
                               write_images=False)
+    """
 
     model = ResNet50(weights='imagenet')
     model.compile(optimizer=tf.keras.optimizers.RMSprop(),
@@ -38,64 +63,43 @@ if __name__ == "__main__":
                show_layer_names=False,
                show_shapes=False)
     """
-    loss = []
-    accuracy = []
+    inputs = sys.argv
+    max_classes = int(inputs[1])
 
-    for subdir, dirs, files in os.walk(images_path):
-        for img_dir in dirs:
+    folders_names = os.listdir(images_path)[:max_classes]
+    dirs = [images_path + img_dir + r"/*.jpg" for img_dir in folders_names]
+    folder_label = [int(img_dir.split("_")[0]) for img_dir in folders_names]
 
-            folder_label = int(img_dir.split("_")[0])
+    with Pool() as p:
+        images = p.map(image_getter, dirs)
+        num_labels = [len(img_folder) for img_folder in images]
+        images = [img for sublist in images for img in sublist]
 
-            images, image_names = image_getter(images_path + img_dir + r"/*.jpg")
-            images_preprocessed = np.asarray([preprocess_input(img.copy()) for img in images])
+    y = []
+    for i, value in enumerate(num_labels):
+        label = folder_label[i]
+        y += [label for _ in range(value)]
 
-            if 0 in images_preprocessed.shape:
-                continue
+    epsilon = float(inputs[2])
+    attack_type = inputs[3]
+    if attack_type not in ['fg', 'fgsm', 'rfgs']:
+        attack_type = 'fgsm'
 
-            y_real = np.ones(len(images), dtype=int)*folder_label
-            model.fit(images_preprocessed, y_real, callbacks=[tensorboard])
+    accuracy_list = []
+    accuracy_5_list = []
+    aciertos = []
+    aciertos_5 = []
 
-            loss_, accuracy_ = model.test_on_batch(images_preprocessed, y_real)
-
-            loss.append(loss_)
-            accuracy.append(accuracy_)
-        break
-    loss = np.asarray(loss)
-    accuracy = np.asarray(accuracy)
-
-    print('Loss en dataset : %.3f +/- %.3f' % (loss.mean(), loss.std()))
-    print('Accuracy en dataset : %.3f +/- %.3f' % (accuracy.mean(), accuracy.std()))
-
-    results = []
-    for eps in np.linspace(10**-4, 1, 5):
-        accuracy = []
-
-        for subdir, dirs, files in os.walk(images_path):
-            for img_dir in dirs:
-                folder_label = int(img_dir.split("_")[0])
-
-                images, image_names = image_getter(images_path + img_dir + r"/*.jpg")
-                images = np.asarray(images)
-
-                if 0 in images.shape:
-                    continue
-
-                img_adv = [fastGradientAttack(model, img, eps, eps*.5, preprocess=True)*255 for img in images]
-                images_preprocessed = np.asarray([preprocess_input(img) for img in img_adv])
-
-                y_real = np.ones(len(images), dtype=int) * folder_label
-
-                _, accuracy_ = model.test_on_batch(images_preprocessed, y_real)
-                print('Accuracy en batch : %.3f' % accuracy_)
-
-                accuracy.append(accuracy_)
-            break
-        accuracy = np.asarray(accuracy)
-        results.append(accuracy)
-
-        print('accuracy con eps %.3f = %.3f' % (eps, accuracy.mean()))
-
-
-
-
-
+    for index, img in enumerate(images):
+        ywut = y[index]
+        start = time.process_time()
+        pred, pred_5 = correct_predictions(model, img.copy(), epsilon, attack_type=attack_type)
+        print(f'Image {index} out of {len(images)} (eps = {epsilon}). Elapsed time: {time.process_time() - start}')
+        aciertos.append(ywut == pred)
+        aciertos_5.append(ywut in pred_5)
+    accuracy = sum(aciertos) / len(aciertos)
+    accuracy_5 = sum(aciertos_5) / len(aciertos_5)
+    print(f'Accuracy top 1 (eps = {epsilon}): {accuracy}')
+    print(f'Accuracy top 5 (eps = {epsilon}): {accuracy_5}')
+    accuracy_list.append(accuracy)
+    accuracy_5_list.append(accuracy_5)

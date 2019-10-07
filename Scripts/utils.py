@@ -28,7 +28,7 @@ def image_getter(path):
             image_name.append(filename)
         except IOError as e:
             print(e)
-    return image_list, image_name
+    return image_list
 
 
 def plot_image_comparison(image_, adversarial, title_img="", title_adv=""):

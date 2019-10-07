@@ -3,10 +3,11 @@ import matplotlib.pyplot as plt
 import os
 import tensorflow as tf
 import foolbox
+import sys
 
 from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input, decode_predictions
 from tensorflow.keras import backend as k
-from Scripts.utils import image_getter, restore_original_image_from_array
+from utils import image_getter, restore_original_image_from_array
 from tensorflow.keras.utils import to_categorical
 
 
@@ -133,11 +134,19 @@ if __name__ == "__main__":
                   loss=tf.keras.losses.CategoricalCrossentropy(),
                   metrics=[tf.keras.metrics.CategoricalAccuracy()])
 
+    inputs = sys.argv
     current_directory = os.getcwd()
-    images_path = os.path.dirname(current_directory) + r"/images/1_goldfish/*.jpg"
+    images_path = os.path.dirname(current_directory)
+    # images_path = os.path.dirname(current_directory) + r"/images/1_goldfish/*.jpg"
+
+    folders_names = os.listdir(images_path)
+    dirs = [images_path + img_dir + r"/*.jpg" for img_dir in folders_names]
+
+    images_path = dirs[int(inputs[1])]
+    eps = float(inputs[2])
 
     images, _ = image_getter(images_path)
-    epsilon = 10**-1
+    epsilon = eps
 
     for img in images:
         img_adversarial = stepLLAttack(model,
@@ -156,19 +165,23 @@ if __name__ == "__main__":
         _, img_adv_class, adv_class_conf = decode_predictions(y_pred_adv, top=1)[0][0]
 
         plt.figure()
-        plt.subplot(131)
+
+        plt.subplot(1, 3, 1)
         plt.imshow(img.copy()/255)
         plt.title('{} \n {:.2f}% Confidence'.format(img_class, class_conf * 100))
         plt.axis('off')
 
-        plt.subplot(132)
+        plt.subplot(1, 3, 2)
         plt.imshow(difference/abs(difference).max() * 0.2 + 0.5)
         plt.axis('off')
+        plt.title('Perturbacion \n $\epsilon=$ {}'.format(epsilon))
 
-        plt.subplot(133)
+        plt.subplot(1, 3, 3)
         plt.imshow(img_adv/255)
         plt.title('{} \n {:.2f}% Confidence'.format(img_adv_class, adv_class_conf * 100))
         plt.axis('off')
 
+        plt.suptitle('Ataque : step l.l.', fontsize='xx-large')
         plt.tight_layout()
+
         plt.show()
