@@ -149,11 +149,13 @@ if __name__ == "__main__":
     epsilon = eps
 
     for img in images:
-        img_adversarial = stepLLAttack(model,
-                                       img.copy(),
-                                       epsilon,
-                                       preprocess=True,
-                                       one_hot=True)
+        img_adversarial = fastGradientAttack(model,
+                                             img.copy(),
+                                             epsilon,
+                                             alpha=epsilon*0.5,
+                                             attack_type=inputs[3],
+                                             preprocess=True,
+                                             one_hot=True)
 
         img_adv = img_adversarial.copy()*255
         difference = img_adv.copy() - img.copy()
