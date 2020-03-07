@@ -7,7 +7,7 @@ import sys
 
 from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input, decode_predictions
 from tensorflow.keras import backend as k
-from utils import image_getter, restore_original_image_from_array
+from Scripts.utils import image_getter, restore_original_image_from_array
 from tensorflow.keras.utils import to_categorical
 
 
@@ -142,20 +142,26 @@ if __name__ == "__main__":
     folders_names = os.listdir(images_path)
     dirs = [images_path + img_dir + r"/*.jpg" for img_dir in folders_names]
 
-    images_path = dirs[int(inputs[1])]
-    eps = float(inputs[2])
+    images_path = dirs[1]
+    eps = 10**-2
 
-    images, _ = image_getter(images_path)
+    images_path = r"C:\Users\tomas\Documents\Primavera 2019\Inteligencia Computacional\proyecto\directory\images\1_goldfish\*.jpg"
+    images = image_getter(images_path)
     epsilon = eps
 
+    images = images[:3]
+
     for img in images:
+
         img_adversarial = fastGradientAttack(model,
                                              img.copy(),
                                              epsilon,
                                              alpha=epsilon*0.5,
-                                             attack_type=inputs[3],
+                                             attack_type='fg',
                                              preprocess=True,
                                              one_hot=True)
+
+        # img_adversarial = stepLLAttack(model, img.copy(), epsilon, preprocess=True, one_hot=True)
 
         img_adv = img_adversarial.copy()*255
         difference = img_adv.copy() - img.copy()
