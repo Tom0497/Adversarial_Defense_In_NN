@@ -8,7 +8,7 @@ from tensorflow.python.keras import layers
 from tensorflow.python.keras import models
 from tensorflow.python.keras import regularizers
 
-from Scripts.imagenetData import ImageNetData
+from imagenetData import ImageNetData
 
 import tensorflow as tf
 
