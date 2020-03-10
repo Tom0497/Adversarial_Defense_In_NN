@@ -10,7 +10,7 @@ from imagenetData import ImageNetData
 
 
 # Useful training functions
-def validate(model):
+def validate_model(model):
     imageNet.shuffle_validation()
     batches = imageNet.get_validation_set(as_batches=True)
     accs = []
@@ -26,7 +26,7 @@ def validate(model):
     return mean_acc, mean_xent
 
 
-def test(model):
+def to_test_model(model):
     batches = imageNet.get_test_set(as_batches=True)
     accs = []
     for batch in batches:
@@ -111,7 +111,7 @@ if __name__ == "__main__":
             loss, acc = model.test_on_batch(batch_data, y=batch_labels,
                                             sample_weight=None, reset_metrics=True)
 
-            validation_accuracy, validation_loss = validate(model)
+            validation_accuracy, validation_loss = validate_model(model)
             print('[Epoch %d, it %d] Training acc. %.3f, loss %.3f. \ Valid. acc. %.3f, loss %.3f' % (
                 epoch,
                 step,
@@ -121,7 +121,7 @@ if __name__ == "__main__":
                 validation_loss
             ))
             val_acc_vals.append(validation_accuracy)
-            test_accuracy = test(model)
+            test_accuracy = to_test_model(model)
             test_acc_vals.append(test_accuracy)
             print("Time elapsed %.2f minutes" % ((time.time() - t_i) / 60.0))
 
