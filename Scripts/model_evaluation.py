@@ -5,9 +5,9 @@ import time
 import glob
 import sys
 
-from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
-from tensorflow.keras.preprocessing import image as image_keras
-from tensorflow.keras.utils import plot_model
+from tensorflow.python.keras.applications.resnet50 import ResNet50, preprocess_input
+from tensorflow.python.keras.preprocessing import image as image_keras
+from tensorflow.python.keras.utils import plot_model
 from tensorflow.python.keras.callbacks import TensorBoard
 from attackImplemented import fastGradientAttack
 from multiprocessing import Pool

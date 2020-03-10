@@ -5,10 +5,10 @@ import tensorflow as tf
 import foolbox
 import sys
 
-from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input, decode_predictions
-from tensorflow.keras import backend as k
+from tensorflow.python.keras.applications.resnet50 import ResNet50, preprocess_input, decode_predictions
+from tensorflow.python.keras import backend as k
 from utils import image_getter, restore_original_image_from_array
-from tensorflow.keras.utils import to_categorical
+from tensorflow.python.keras.utils import to_categorical
 
 
 def model_grad_input(model, image, label, preprocess=False):

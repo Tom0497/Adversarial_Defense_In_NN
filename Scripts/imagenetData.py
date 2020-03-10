@@ -10,7 +10,7 @@ import pickle
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from tensorflow.keras.preprocessing import image
+from tensorflow.python.keras.preprocessing import image
 
 from DataExtractor import *
 

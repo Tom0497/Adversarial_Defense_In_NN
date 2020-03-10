@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import glob
 import os
 
-from tensorflow.keras.preprocessing import image
+from tensorflow.python.keras.preprocessing import image
 from sklearn.metrics import accuracy_score
 
 HEIGHT, WIDTH = 224, 224
