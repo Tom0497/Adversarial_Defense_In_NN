@@ -3,10 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-from zipfile import ZipFile
-import glob
-import json
-import pickle
 import numpy as np
 from sklearn.model_selection import train_test_split
 
@@ -255,7 +251,7 @@ class ImageNetData:
 
 
 if __name__ == '__main__':
-    classes = [447, 530, 592, 950, 96]
+    classes = [447, 530]  # 592, 950, 96]
     imageNet8 = ImageNetData(classes, images_per_class=200,
                              batch_size=32,
                              validation_proportion=0.2,
