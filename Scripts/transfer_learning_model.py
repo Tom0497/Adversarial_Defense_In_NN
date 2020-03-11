@@ -64,9 +64,9 @@ def define_model(num_classes):
 
 if __name__ == "__main__":
     batch_size = 64
-    n_classes = 2
     dropout_rate = .2
-    classes = [447, 530]  # , 592, 950, 96]
+    classes = [447, 96]  #  592, 950, 530,
+    n_classes = len(classes)
 
     imageNet = ImageNetData(classes, images_per_class=500,
                             batch_size=batch_size,
