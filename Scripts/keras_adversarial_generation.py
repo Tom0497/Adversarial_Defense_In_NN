@@ -1,15 +1,25 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import tensorflow as tf
-tf.compat.v1.enable_eager_execution()
-import time
 import random
+import time
 
-from tensorflow.keras import datasets, layers, models
 import matplotlib.pyplot as plt
 import numpy as np
-
+import tensorflow as tf
+from tqdm import tqdm
 from imagenetData import ImageNetData
+from tensorflow.python.keras import layers, models
+from tensorflow.python.keras.backend import clear_session
+
+tf.compat.v1.enable_eager_execution()
+
+config = tf.compat.v1.ConfigProto(gpu_options=tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.8)
+                                  # device_count = {'GPU': 1}
+                                  )
+config.gpu_options.allow_growth = True
+session = tf.compat.v1.Session(config=config)
+tf.compat.v1.keras.backend.set_session(session)
+
 
 def define_model(num_classes):
     # Defining the model
@@ -36,9 +46,8 @@ def define_model(num_classes):
     the_model.summary()
 
     the_model.compile(optimizer=tf.keras.optimizers.RMSprop(),
-                  loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
-                  metrics=['accuracy'])
-
+                      loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+                      metrics=['accuracy'])
 
     return the_model
 
@@ -52,7 +61,7 @@ def validate(model):
     for batch in batches:
         data, labels = batch
         xentropy_val, acc = model.test_on_batch(data, y=labels,
-                                          sample_weight=None, reset_metrics=True)
+                                                sample_weight=None, reset_metrics=True)
         accs.append(acc)
         xent_vals.append(xentropy_val)
     mean_xent = np.array(xent_vals).mean()
@@ -60,13 +69,13 @@ def validate(model):
     return mean_acc, mean_xent
 
 
-def test(model):
+def to_test_model(model):
     batches = imageNet.get_test_set(as_batches=True)
     accs = []
     for batch in batches:
         data, labels = batch
         _, acc = model.test_on_batch(data, y=labels,
-                                          sample_weight=None, reset_metrics=True)
+                                     sample_weight=None, reset_metrics=True)
         accs.append(acc)
     mean_acc = np.array(accs).mean()
     return mean_acc
@@ -93,22 +102,22 @@ def generate_adversarials(epsilon, number_of_examples):
         y = []
 
         for example in range(number_of_examples):
-          for b in range(batch_number):
-              N = random.randint(0, batch_size - 1)
+            for b in range(batch_number):
+                N = random.randint(0, batch_size - 1)
 
-              batch, batch_idx = imageNet.next_batch()
-              batch_data = batch[0].astype(float)
-              batch_labels = batch[1].astype(float)
+                batch, batch_idx = imageNet.next_batch()
+                batch_data = batch[0].astype(float)
+                batch_labels = batch[1].astype(float)
 
-              label = batch_labels[N]
-              image = batch_data[N]
+                label = batch_labels[N]
+                image = batch_data[N]
 
-              perturbations = adversarial_pattern(image.reshape((1, 224, 224, 3)), label).numpy()
+                perturbations = adversarial_pattern(image.reshape((1, 224, 224, 3)), label).numpy()
 
-              adversarial = image + perturbations * epsilon
+                adversarial = image + perturbations * epsilon
 
-              x.append(adversarial)
-              y.append(batch_labels[N])
+                x.append(adversarial)
+                y.append(batch_labels[N])
 
         x = np.asarray(x).reshape((number_of_examples * batch_number, 224, 224, 3))
         y = np.asarray(y)
@@ -165,7 +174,7 @@ if __name__ == "__main__":
                 validation_loss
             ))
             val_acc_vals.append(validation_accuracy)
-            test_accuracy = test(model)
+            test_accuracy = to_test_model(model)
             test_acc_vals.append(test_accuracy)
             print("Time elapsed %.2f minutes" % ((time.time() - t_i) / 60.0))
 
@@ -184,13 +193,31 @@ if __name__ == "__main__":
     print("Testing set accuracy @ epoch %d (best validation acc): %.4f" % (best_epoch, test_acc_at_best))
     print('*' * 30)
 
+    """
     x_adversarial_test, y_adversarial_test = next(generate_adversarials(10))
     print("Base accuracy on adversarial images:", model.evaluate(x=x_adversarial_test, y=y_adversarial_test, verbose=0))
+    """
 
+    """
     res = []
     lol = np.linspace(0, 3, num=30)
-    for epsilon in lol:
-        x_adversarial_test, y_adversarial_test = next(generate_adversarials(epsilon, 100))
+    for epsilon in tqdm(lol):
+        x_adversarial_test, y_adversarial_test = next(generate_adversarials(epsilon, 10))
         res.append(model.evaluate(x=x_adversarial_test, y=y_adversarial_test, verbose=0)[1])
 
     plt.plot(lol, res, '*')
+    """
+
+    epsilon = 8
+    x_adversarial_test, y_adversarial_test = next(generate_adversarials(epsilon, 5))
+    x_adversarial_train, y_adversarial_train = next(generate_adversarials(epsilon, 5))
+
+    test_accuracy_before = to_test_model(model)
+    adv_test_accu_before = model.evaluate(x=x_adversarial_test, y=y_adversarial_test, verbose=0)[1]
+
+    model.fit(x_adversarial_train, y_adversarial_train, batch_size=32, epochs=5)
+
+    adv_test_accu_after = model.evaluate(x=x_adversarial_test, y=y_adversarial_test, verbose=0)[1]
+    test_accuracy_after = to_test_model(model)
+
+    clear_session()
