@@ -95,7 +95,7 @@ if __name__ == "__main__":
     # Load dataset
     batch_size = 64
     dropout_rate_ = .2
-    classes = [96, 950]  # , 592, 530, 447]
+    classes = [96, 950, 530]  # [96, 950, 592, 530, 447]
     n_classes = len(classes)
     imageNet = ImageNetData(classes, images_per_class=500,
                             batch_size=batch_size,

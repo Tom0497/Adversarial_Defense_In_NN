@@ -3,12 +3,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import random
 import time
 
-import matplotlib.pyplot as plt
+import models_and_utils as mm
 import numpy as np
 import tensorflow as tf
-from tqdm import tqdm
 from imagenetData import ImageNetData
-from tensorflow.python.keras import layers, models
 from tensorflow.python.keras.backend import clear_session
 
 tf.compat.v1.enable_eager_execution()
@@ -19,66 +17,6 @@ config = tf.compat.v1.ConfigProto(gpu_options=tf.compat.v1.GPUOptions(per_proces
 config.gpu_options.allow_growth = True
 session = tf.compat.v1.Session(config=config)
 tf.compat.v1.keras.backend.set_session(session)
-
-
-def define_model(num_classes):
-    # Defining the model
-    the_model = models.Sequential()
-    the_model.add(layers.Conv2D(16, (7, 7), activation='relu', padding='same', input_shape=(224, 224, 3)))
-    # model.add(layers.BatchNormalization())
-    the_model.add(layers.MaxPooling2D((2, 2)))
-    # model.add(layers.Dropout(dropout_rate))
-    the_model.add(layers.Conv2D(64, (5, 5), activation='relu', padding='same'))
-    # model.add(layers.BatchNormalization())
-    the_model.add(layers.MaxPooling2D((2, 2)))
-    # model.add(layers.Dropout(dropout_rate))
-    the_model.add(layers.Conv2D(128, (3, 3), activation='relu', padding='same'))
-    # model.add(layers.BatchNormalization())
-    the_model.add(layers.MaxPooling2D((2, 2)))
-    # model.add(layers.Dropout(dropout_rate))
-    the_model.add(layers.Conv2D(16, (7, 7), activation='relu', padding='same'))
-    # model.add(layers.BatchNormalization())
-    the_model.add(layers.MaxPooling2D((2, 2)))
-    # model.add(layers.Dropout(dropout_rate))
-    the_model.add(layers.Conv2D(num_classes, (1, 1)))
-    the_model.add(layers.GlobalAveragePooling2D())
-
-    the_model.summary()
-
-    the_model.compile(optimizer=tf.keras.optimizers.RMSprop(),
-                      loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
-                      metrics=['accuracy'])
-
-    return the_model
-
-
-# Useful training functions
-def validate(model):
-    imageNet.shuffle_validation()
-    batches = imageNet.get_validation_set(as_batches=True)
-    accs = []
-    xent_vals = []
-    for batch in batches:
-        data, labels = batch
-        xentropy_val, acc = model.test_on_batch(data, y=labels,
-                                                sample_weight=None, reset_metrics=True)
-        accs.append(acc)
-        xent_vals.append(xentropy_val)
-    mean_xent = np.array(xent_vals).mean()
-    mean_acc = np.array(accs).mean()
-    return mean_acc, mean_xent
-
-
-def to_test_model(model):
-    batches = imageNet.get_test_set(as_batches=True)
-    accs = []
-    for batch in batches:
-        data, labels = batch
-        _, acc = model.test_on_batch(data, y=labels,
-                                     sample_weight=None, reset_metrics=True)
-        accs.append(acc)
-    mean_acc = np.array(accs).mean()
-    return mean_acc
 
 
 def adversarial_pattern(image, label):
@@ -136,7 +74,7 @@ if __name__ == "__main__":
     imageNet = ImageNetData(classes, images_per_class=500,
                             batch_size=batch_size, validation_proportion=0.4, augment_data=True)
 
-    model = define_model(n_classes)
+    model = mm.define_model(n_classes)
 
     epochs = 5
     history = {'loss': [], 'accuracy': []}
@@ -164,7 +102,7 @@ if __name__ == "__main__":
             loss, acc = model.test_on_batch(batch_data, y=batch_labels,
                                             sample_weight=None, reset_metrics=True)
 
-            validation_accuracy, validation_loss = validate(model)
+            validation_accuracy, validation_loss = mm.validate_model(model, imageNet)
             print('[Epoch %d, it %d] Training acc. %.3f, loss %.3f. \ Valid. acc. %.3f, loss %.3f' % (
                 epoch,
                 step,
@@ -174,7 +112,7 @@ if __name__ == "__main__":
                 validation_loss
             ))
             val_acc_vals.append(validation_accuracy)
-            test_accuracy = to_test_model(model)
+            test_accuracy = mm.to_test_model(model, imageNet)
             test_acc_vals.append(test_accuracy)
             print("Time elapsed %.2f minutes" % ((time.time() - t_i) / 60.0))
 
@@ -208,16 +146,16 @@ if __name__ == "__main__":
     plt.plot(lol, res, '*')
     """
 
-    epsilon = 8
-    x_adversarial_test, y_adversarial_test = next(generate_adversarials(epsilon, 5))
-    x_adversarial_train, y_adversarial_train = next(generate_adversarials(epsilon, 5))
+    eps = 8
+    x_adversarial_test, y_adversarial_test = next(generate_adversarials(eps, 5))
+    x_adversarial_train, y_adversarial_train = next(generate_adversarials(eps, 5))
 
-    test_accuracy_before = to_test_model(model)
+    test_accuracy_before = mm.to_test_model(model, imageNet)
     adv_test_accu_before = model.evaluate(x=x_adversarial_test, y=y_adversarial_test, verbose=0)[1]
 
     model.fit(x_adversarial_train, y_adversarial_train, batch_size=32, epochs=5)
 
     adv_test_accu_after = model.evaluate(x=x_adversarial_test, y=y_adversarial_test, verbose=0)[1]
-    test_accuracy_after = to_test_model(model)
+    test_accuracy_after = mm.to_test_model(model, imageNet)
 
     clear_session()
