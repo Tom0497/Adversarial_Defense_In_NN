@@ -4,10 +4,12 @@ from tensorflow.python.keras import layers, models, optimizers, losses
 from tensorflow.python.keras.applications.vgg16 import VGG16
 
 
-def define_model(num_classes, use_pre_trained=False):
+def define_model(num_classes, own_num=0, use_pre_trained=False, dropout_rate=0.2):
     """
     It returns the model that'll be used for image classification.
 
+    :param dropout_rate:        the dropout rate in case it applies
+    :param own_num:             it specifies which own model to use
     :param num_classes:         the number of classes that's beign classified
     :param use_pre_trained:     whether or not to use a pretrained model
     :return:                    a tensorflow.keras model
@@ -15,7 +17,10 @@ def define_model(num_classes, use_pre_trained=False):
     if use_pre_trained:
         return tl_model(num_classes)
     else:
-        return own_model(num_classes)
+        if own_num == 0:
+            return own_model(num_classes)
+        elif own_num == 1:
+            return own_model_1(num_classes, dropout_rate=dropout_rate)
 
 
 def own_model(num_classes):
@@ -28,16 +33,17 @@ def own_model(num_classes):
 
     own_model_ = models.Sequential()
 
-    own_model_.add(layers.Conv2D(16, (7, 7), activation='relu', padding='same', input_shape=(224, 224, 3)))
+    own_model_.add(layers.Conv2D(16, (7, 7), activation='relu', padding='same',
+                                 input_shape=(224, 224, 3), kernel_initializer='he_uniform'))
     own_model_.add(layers.MaxPooling2D((2, 2)))
 
-    own_model_.add(layers.Conv2D(64, (5, 5), activation='relu', padding='same'))
+    own_model_.add(layers.Conv2D(64, (5, 5), activation='relu', padding='same', kernel_initializer='he_uniform'))
     own_model_.add(layers.MaxPooling2D((2, 2)))
 
-    own_model_.add(layers.Conv2D(128, (3, 3), activation='relu', padding='same'))
+    own_model_.add(layers.Conv2D(128, (3, 3), activation='relu', padding='same', kernel_initializer='he_uniform'))
     own_model_.add(layers.MaxPooling2D((2, 2)))
 
-    own_model_.add(layers.Conv2D(16, (7, 7), activation='relu', padding='same'))
+    own_model_.add(layers.Conv2D(16, (7, 7), activation='relu', padding='same', kernel_initializer='he_uniform'))
     own_model_.add(layers.MaxPooling2D((2, 2)))
 
     own_model_.add(layers.Conv2D(num_classes, (1, 1)))
@@ -50,6 +56,50 @@ def own_model(num_classes):
                        metrics=['accuracy'])
 
     return own_model_
+
+
+def own_model_1(num_classes, dropout_rate):
+    """
+    It defines the structure and layers of the CNN model used for classification, it has a MLP as
+    classifier at its bottom.
+
+    :param num_classes:     the number of classes that the model classify
+    :param dropout_rate:    sets the dropout rate for the dense layers of the model
+    :return:                return a tensorflow.keras model
+    """
+    own_model_1_ = models.Sequential()
+
+    own_model_1_.add(layers.Conv2D(16, (7, 7), activation='relu', padding='same',
+                                   input_shape=(224, 224, 3), kernel_initializer='he_uniform'))
+    own_model_1_.add(layers.MaxPooling2D((2, 2)))
+
+    own_model_1_.add(layers.Conv2D(32, (7, 7), activation='relu',
+                                   padding='same', kernel_initializer='he_uniform'))
+    own_model_1_.add(layers.MaxPooling2D((2, 2)))
+
+    own_model_1_.add(layers.Conv2D(64, (7, 7), activation='relu',
+                                   padding='same', kernel_initializer='he_uniform'))
+    own_model_1_.add(layers.MaxPooling2D((2, 2)))
+
+    own_model_1_.add(layers.Conv2D(128, (7, 7), activation='relu',
+                                   padding='same', kernel_initializer='he_uniform'))
+    own_model_1_.add(layers.MaxPooling2D((2, 2)))
+
+    own_model_1_.add(layers.Conv2D(64, (1, 1), activation='relu', kernel_initializer='he_uniform'))
+
+    own_model_1_.add(layers.Flatten())
+    own_model_1_.add(layers.Dropout(dropout_rate))
+    own_model_1_.add(layers.Dense(128, activation='relu', kernel_initializer='he_uniform'))
+
+    own_model_1_.add(layers.Dense(num_classes, activation='sigmoid', kernel_initializer='he_uniform'))
+
+    own_model_1_.summary()
+
+    own_model_1_.compile(optimizer=optimizers.SGD(learning_rate=0.001, momentum=0.9, nesterov=True),
+                         loss=losses.CategoricalCrossentropy(from_logits=True),
+                         metrics=['accuracy'])
+
+    return own_model_1_
 
 
 def tl_model(num_classes):

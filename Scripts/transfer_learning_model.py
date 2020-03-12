@@ -18,6 +18,7 @@ tf.compat.v1.keras.backend.set_session(session)
 if __name__ == "__main__":
     batch_size = 64
     dropout_rate = .2
+    epochs = 30
     classes = [447, 96]  #  592, 950, 530,
     n_classes = len(classes)
 
@@ -28,7 +29,6 @@ if __name__ == "__main__":
 
     model_tf = mm.define_model(n_classes)
 
-    epochs = 30
     history = {'loss': [], 'accuracy': []}
 
     imageNet.reset()
