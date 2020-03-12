@@ -19,7 +19,7 @@ if __name__ == "__main__":
     batch_size = 64
     dropout_rate = .2
     epochs = 30
-    classes = [447, 96]  #  592, 950, 530,
+    classes = [447, 96, 950]  # 447, 96, 592, 950, 530,
     n_classes = len(classes)
 
     imageNet = ImageNetData(classes, images_per_class=500,
@@ -27,7 +27,7 @@ if __name__ == "__main__":
                             validation_proportion=0.2,
                             augment_data=False)
 
-    model_tf = mm.define_model(n_classes)
+    model_tf = mm.define_model(n_classes, own_num=1)
 
     history = {'loss': [], 'accuracy': []}
 
@@ -64,7 +64,7 @@ if __name__ == "__main__":
                 validation_loss
             ))
             val_acc_vals.append(validation_accuracy)
-            test_accuracy = mm.to_test_model(model_tf)
+            test_accuracy = mm.to_test_model(model_tf, imageNet)
             test_acc_vals.append(test_accuracy)
             print("Time elapsed %.2f minutes" % ((time.time() - t_i) / 60.0))
 

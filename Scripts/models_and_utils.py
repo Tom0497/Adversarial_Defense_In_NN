@@ -1,6 +1,6 @@
 import numpy as np
 
-from tensorflow.python.keras import layers, models, optimizers, losses
+from tensorflow.python.keras import layers, models, optimizers, losses, regularizers
 from tensorflow.python.keras.applications.vgg16 import VGG16
 
 
@@ -69,20 +69,20 @@ def own_model_1(num_classes, dropout_rate):
     """
     own_model_1_ = models.Sequential()
 
-    own_model_1_.add(layers.Conv2D(16, (7, 7), activation='relu', padding='same',
-                                   input_shape=(224, 224, 3), kernel_initializer='he_uniform'))
+    own_model_1_.add(layers.Conv2D(16, (7, 7), activation='relu', padding='same', input_shape=(224, 224, 3),
+                                   kernel_initializer='he_uniform'))
     own_model_1_.add(layers.MaxPooling2D((2, 2)))
 
-    own_model_1_.add(layers.Conv2D(32, (7, 7), activation='relu',
-                                   padding='same', kernel_initializer='he_uniform'))
+    own_model_1_.add(layers.Conv2D(32, (7, 7), activation='relu', padding='same',
+                                   kernel_initializer='he_uniform'))
     own_model_1_.add(layers.MaxPooling2D((2, 2)))
 
-    own_model_1_.add(layers.Conv2D(64, (7, 7), activation='relu',
-                                   padding='same', kernel_initializer='he_uniform'))
+    own_model_1_.add(layers.Conv2D(64, (7, 7), activation='relu', padding='same',
+                                   kernel_initializer='he_uniform'))
     own_model_1_.add(layers.MaxPooling2D((2, 2)))
 
-    own_model_1_.add(layers.Conv2D(128, (7, 7), activation='relu',
-                                   padding='same', kernel_initializer='he_uniform'))
+    own_model_1_.add(layers.Conv2D(128, (7, 7), activation='relu', padding='same',
+                                   kernel_initializer='he_uniform'))
     own_model_1_.add(layers.MaxPooling2D((2, 2)))
 
     own_model_1_.add(layers.Conv2D(64, (1, 1), activation='relu', kernel_initializer='he_uniform'))
@@ -95,7 +95,7 @@ def own_model_1(num_classes, dropout_rate):
 
     own_model_1_.summary()
 
-    own_model_1_.compile(optimizer=optimizers.SGD(learning_rate=0.001, momentum=0.9, nesterov=True),
+    own_model_1_.compile(optimizer=optimizers.SGD(lr=0.001, momentum=0.9, nesterov=True),
                          loss=losses.CategoricalCrossentropy(from_logits=True),
                          metrics=['accuracy'])
 
