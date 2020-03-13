@@ -87,11 +87,11 @@ def generate_adversarials(number_of_examples, epsilon=None):
 
 x_adversarial_train, x_original_train, y_adversarial_train = next(generate_adversarials(250))
 
-x_adversarial_test_01, x_original_test_01, y_adversarial_test_01 = next(generate_adversarials(25))
-x_adversarial_test_1, x_original_test_1, y_adversarial_test_1 = next(generate_adversarials(25))
-x_adversarial_test_3, x_original_test_3, y_adversarial_test_3 = next(generate_adversarials(25))
-x_adversarial_test_5, x_original_test_5, y_adversarial_test_5 = next(generate_adversarials(25))
-x_adversarial_test_8, x_original_test_8, y_adversarial_test_8 = next(generate_adversarials(25))
+x_adversarial_test_01, x_original_test_01, y_adversarial_test_01 = next(generate_adversarials(25, epsilon=0.1))
+x_adversarial_test_1, x_original_test_1, y_adversarial_test_1 = next(generate_adversarials(25, epsilon=1))
+x_adversarial_test_3, x_original_test_3, y_adversarial_test_3 = next(generate_adversarials(25, epsilon=3))
+x_adversarial_test_5, x_original_test_5, y_adversarial_test_5 = next(generate_adversarials(25, epsilon=5))
+x_adversarial_test_8, x_original_test_8, y_adversarial_test_8 = next(generate_adversarials(25, epsilon=8))
 
 test_accuracy_before = mm.to_test_model(model, imageNet)
 adv_test_accu_before_01 = model.evaluate(x=x_adversarial_test_01, y=y_adversarial_test_01, verbose=0)[1]
