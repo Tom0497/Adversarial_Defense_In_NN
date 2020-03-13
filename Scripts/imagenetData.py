@@ -13,6 +13,7 @@ from DataExtractor import *
 WIDTH, HEIGHT = 224, 224
 use_colab = False
 
+"""
 if use_colab:
     # for google collaboratory purposes
     DIR_BINARIES = r"/content/drive/My Drive/ImageNetDataSets/ImageNet/Images"
@@ -27,6 +28,15 @@ dict_path_ = r"/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID" 
 urls_path = r"/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID" + urls_file
 images_path = r"/content/drive/My Drive/ImageNetDataSets/ImageNet" + r"/Images"
 urls_folder_path = r"/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID" + r"/urls"
+"""
+DIR_BINARIES = r"/home/rai/Documentos/8vo Semestre/Inteligencia/Adversarial_Defense_In_NN/Scripts/images/"
+classes_file = r"/imagenet_class_index.json"
+urls_file = r"/fall11_urls.txt"
+current_directory = os.getcwd()
+dict_path_ = r"/home/rai/Documentos/8vo Semestre/Inteligencia/Adversarial_Defense_In_NN/image_metadata" + classes_file
+urls_path = r"/home/rai/Documentos/8vo Semestre/Inteligencia/Adversarial_Defense_In_NN/image_metadata" + urls_file
+images_path = r"/home/rai/Documentos/8vo Semestre/Inteligencia/Adversarial_Defense_In_NN/Scripts/images/"
+urls_folder_path = r"/home/rai/Documentos/8vo Semestre/Inteligencia/Adversarial_Defense_In_NN/image_metadata/urls"
 
 
 def get_sorted_dirs(path):
