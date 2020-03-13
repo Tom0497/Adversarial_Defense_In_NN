@@ -7,6 +7,9 @@ import models_and_utils as mm
 from tensorflow.python.keras.utils import to_categorical
 import matplotlib.pyplot as plt
 
+tf.compat.v1.enable_eager_execution()
+
+
 batch_size = 64
 epochs = 5
 images_per_class = 500
@@ -58,8 +61,9 @@ def generate_adversarials(number_of_examples, epsilon=None):
         y = []
         n = -1
 
+        x_train, y_train = imageNet.get_train_set()
+
         for example in range(number_of_examples):
-            x_train, y_train = imageNet.get_train_set()
 
             while n not in original_x:
                 n = random.randint(0, len(y_train))
@@ -71,7 +75,7 @@ def generate_adversarials(number_of_examples, epsilon=None):
             perturbations = adversarial_pattern(image.reshape((1, 224, 224, 3)), label).numpy()
 
             if epsilon is None:
-                epsilon = tf.abs(tf.truncated_normal([1, 1], mean=0, stddev=8))
+                epsilon = tf.abs(tf.truncated_normal([1, 1], mean=0, stddev=8)).numpy()[0][0]
 
             adversarial = image + perturbations * epsilon
 
@@ -85,13 +89,13 @@ def generate_adversarials(number_of_examples, epsilon=None):
         yield x, original_x, y
 
 
-x_adversarial_train, x_original_train, y_adversarial_train = next(generate_adversarials(250))
+x_adversarial_train, x_original_train, y_adversarial_train = next(generate_adversarials(300))
 
-x_adversarial_test_01, x_original_test_01, y_adversarial_test_01 = next(generate_adversarials(25, epsilon=0.1))
-x_adversarial_test_1, x_original_test_1, y_adversarial_test_1 = next(generate_adversarials(25, epsilon=1))
-x_adversarial_test_3, x_original_test_3, y_adversarial_test_3 = next(generate_adversarials(25, epsilon=3))
-x_adversarial_test_5, x_original_test_5, y_adversarial_test_5 = next(generate_adversarials(25, epsilon=5))
-x_adversarial_test_8, x_original_test_8, y_adversarial_test_8 = next(generate_adversarials(25, epsilon=8))
+x_adversarial_test_01, x_original_test_01, y_adversarial_test_01 = next(generate_adversarials(100, epsilon=0.1))
+x_adversarial_test_1, x_original_test_1, y_adversarial_test_1 = next(generate_adversarials(100, epsilon=1))
+x_adversarial_test_3, x_original_test_3, y_adversarial_test_3 = next(generate_adversarials(100, epsilon=3))
+x_adversarial_test_5, x_original_test_5, y_adversarial_test_5 = next(generate_adversarials(100, epsilon=5))
+x_adversarial_test_8, x_original_test_8, y_adversarial_test_8 = next(generate_adversarials(100, epsilon=8))
 
 test_accuracy_before = mm.to_test_model(model, imageNet)
 adv_test_accu_before_01 = model.evaluate(x=x_adversarial_test_01, y=y_adversarial_test_01, verbose=0)[1]
@@ -128,9 +132,9 @@ adv_test_accuracy_before = [adv_test_accu_before_01, adv_test_accu_before_1, adv
                             adv_test_accu_before_5, adv_test_accu_before_8]
 adv_test_accuracy_after = [adv_test_accu_after_01, adv_test_accu_after_1, adv_test_accu_after_3,
                            adv_test_accu_after_5, adv_test_accu_after_8]
-epsilons = [0.1, 1, 3, 5, 8]
+epsilons = [0, 0.1, 1, 3, 5, 8]
 
-plt.plot(epsilons, adv_test_accuracy_before, 'ro', label='Before adv. training')
-plt.plot(epsilons, adv_test_accuracy_before, 'bo', label='After adv. training')
+plt.plot(epsilons, test_accuracy_before + adv_test_accuracy_before, 'ro', label='Before adv. training')
+plt.plot(epsilons, test_accuracy_after + adv_test_accuracy_before, 'bo', label='After adv. training')
 plt.legend()
 plt.show()
