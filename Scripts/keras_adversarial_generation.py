@@ -6,6 +6,7 @@ import time
 import models_and_utils as mm
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 from imagenetData import ImageNetData
 from tensorflow.python.keras.backend import clear_session
 
@@ -69,14 +70,14 @@ if __name__ == "__main__":
     images_per_class = 500
     batch_number = int(images_per_class / batch_size)
     dropout_rate = .2
-    classes = [96, 950]  # ,447, 530, 592, 950, 96]
+    classes = [96, 950, 530]  # ,447, 530, 592, 950, 96]
     n_classes = len(classes)
     imageNet = ImageNetData(classes, images_per_class=500,
                             batch_size=batch_size, validation_proportion=0.4, augment_data=True)
 
-    model = mm.define_model(n_classes)
+    model = mm.define_model(n_classes, own_num=1)
 
-    epochs = 5
+    epochs = 10
     history = {'loss': [], 'accuracy': []}
 
     imageNet.reset()
@@ -146,16 +147,32 @@ if __name__ == "__main__":
     plt.plot(lol, res, '*')
     """
 
-    eps = 8
-    x_adversarial_test, y_adversarial_test = next(generate_adversarials(eps, 5))
-    x_adversarial_train, y_adversarial_train = next(generate_adversarials(eps, 5))
+    eps = 2
+    x_adversarial_test, y_adversarial_test = next(generate_adversarials(eps, 10))
+    x_adversarial_train, y_adversarial_train = next(generate_adversarials(eps, 20))
 
     test_accuracy_before = mm.to_test_model(model, imageNet)
     adv_test_accu_before = model.evaluate(x=x_adversarial_test, y=y_adversarial_test, verbose=0)[1]
 
-    model.fit(x_adversarial_train, y_adversarial_train, batch_size=32, epochs=5)
+    print("Accuracy base, ejemplos normales:", test_accuracy_before)
+    print("Accuracy base, ejemplos adversarios:", adv_test_accu_before)
+
+    model.fit(x_adversarial_train, y_adversarial_train, batch_size=64, epochs=epochs,
+              validation_data=imageNet.get_test_set())
 
     adv_test_accu_after = model.evaluate(x=x_adversarial_test, y=y_adversarial_test, verbose=0)[1]
     test_accuracy_after = mm.to_test_model(model, imageNet)
 
+    print("Accuracy fitted, ejemplos normales:", test_accuracy_after)
+    print("Accuracy fitted, ejemplos adversarios:", adv_test_accu_after)
+
     clear_session()
+
+    for i in range(10):
+        x = x_adversarial_train[i] * imageNet.std + imageNet.mean
+        a_min = np.min(x)
+        a_max = np.max(x)
+        a_scaled = (x - a_min) / (a_max - a_min)
+        plt.imshow(a_scaled)
+        plt.axis('off')
+        plt.show()

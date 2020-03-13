@@ -141,11 +141,11 @@ class ImageNetData:
             self.validation_data, self.validation_labels, test_size=.5, random_state=1)
 
         # Normalize data
-        mean = self.train_data.mean(axis=0)
-        std = self.train_data.std(axis=0)
-        self.train_data = (self.train_data - mean) / std
-        self.validation_data = (self.validation_data - mean) / std
-        self.test_data = (self.test_data - mean) / std
+        self.mean = self.train_data.mean(axis=0)
+        self.std = self.train_data.std(axis=0)
+        self.train_data = (self.train_data - self.mean) / self.std
+        self.validation_data = (self.validation_data - self.mean) / self.std
+        self.test_data = (self.test_data - self.mean) / self.std
 
         # Converting to b01c and one-hot encoding
         self.train_labels = labels_to_one_hot(self.train_labels, self.number_of_classes)
@@ -193,6 +193,14 @@ class ImageNetData:
         :return:    the current epoch of training data
         """
         return self.current_epoch
+
+    def get_train_set(self):
+        """
+        Get the train data from the dataset
+
+        :return:        the train data (images, labels)
+        """
+        return self.train_data, self.train_labels
 
     def get_test_set(self, as_batches=False):
         """
