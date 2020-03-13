@@ -9,7 +9,6 @@ from imagenetData import ImageNetData
 from tensorflow.python.keras.backend import clear_session
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 
-tf.compat.v1.enable_eager_execution()
 
 config = tf.compat.v1.ConfigProto(gpu_options=tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.8)
                                   # device_count = {'GPU': 1}
