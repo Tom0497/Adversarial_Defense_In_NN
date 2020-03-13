@@ -37,13 +37,13 @@ def adversarial_pattern(image, label):
 
     return signed_grad
 
-def adversarial_step_ll(image_original):
-    image = tf.cast(image_original, tf.float32)
+def adversarial_step_ll(image):
+    image = tf.cast(image, tf.float32)
 
     with tf.GradientTape() as tape:
         tape.watch(image)
         prediction = model(image)
-        y_ll = model.predict(image_original.copy()[np.newaxis, :][0]).argmin()
+        y_ll = model(image).numpy().argmin()
         y_ll = labels_to_one_hot([y_ll], n_classes)[0]
         loss = tf.keras.losses.MSE(y_ll, prediction)
 
@@ -57,17 +57,15 @@ def adversarial_step_ll(image_original):
 def generate_adversarials(number_of_examples, epsilon=None, use_step_ll=False):
     while True:
         x = []
-        original_x = []
         y = []
-        n = -1
 
         x_train, y_train = imageNet.get_train_set()
+        image_list = list(range(len(y_train)))
+        np.random.shuffle(image_list)
+        image_list = image_list[:number_of_examples]
 
         for example in range(number_of_examples):
-
-            while n not in original_x:
-                n = random.randint(0, len(y_train))
-                original_x.append(n)
+            n = image_list[example]
 
             label = y_train[n]
             image = x_train[n]
@@ -86,7 +84,7 @@ def generate_adversarials(number_of_examples, epsilon=None, use_step_ll=False):
             y.append(y_train[n])
 
         x = np.asarray(x).reshape((number_of_examples, 224, 224, 3))
-        original_x = np.asarray(original_x)
+        original_x = np.asarray(image_list)
         y = np.asarray(y)
 
         yield x, original_x, y
@@ -126,58 +124,65 @@ x_adversarial_train, x_original_train, y_adversarial_train = next(generate_adver
 
 x_train, y_train = imageNet.get_train_set()
 
-random_images = []
-number_of_adv_examples = 100
-n = -1
-for example in range(number_of_adv_examples):
-    while n not in random_images:
-        n = random.randint(0, len(y_train))
-        random_images.append(n)
+random_images = list(range(len(y_train)))
+np.random.shuffle(random_images)
+number_of_adv_examples = 50
+random_images = random_images[:number_of_adv_examples]
 
-x_adversarial_test_01, y_adversarial_test_01 = next(generate_adversarials_by_image_list(random_images, epsilon=0.1))
-x_adversarial_test_1, y_adversarial_test_1 = next(generate_adversarials_by_image_list(random_images, epsilon=1))
-x_adversarial_test_3, y_adversarial_test_3 = next(generate_adversarials_by_image_list(random_images, epsilon=3))
-x_adversarial_test_5, y_adversarial_test_5 = next(generate_adversarials_by_image_list(random_images, epsilon=5))
-x_adversarial_test_8, y_adversarial_test_8 = next(generate_adversarials_by_image_list(random_images, epsilon=8))
+epsilons = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2]
 
-test_accuracy_before = mm.to_test_model(model, imageNet)
-adv_test_accu_before_01 = model.evaluate(x=x_adversarial_test_01, y=y_adversarial_test_01, verbose=0)[1]
-adv_test_accu_before_1 = model.evaluate(x=x_adversarial_test_1, y=y_adversarial_test_1, verbose=0)[1]
-adv_test_accu_before_3 = model.evaluate(x=x_adversarial_test_3, y=y_adversarial_test_3, verbose=0)[1]
-adv_test_accu_before_5 = model.evaluate(x=x_adversarial_test_5, y=y_adversarial_test_5, verbose=0)[1]
-adv_test_accu_before_8 = model.evaluate(x=x_adversarial_test_8, y=y_adversarial_test_8, verbose=0)[1]
+x_adversarial_test_epsilons = []
+y_adversarial_test_epsilons = []
+adv_test_accu_before_epsilons = []
 
-print("Accuracy base, ejemplos normales:", test_accuracy_before)
-print("Accuracy base, ejemplos adversarios, epsilon 0.1:", adv_test_accu_before_01)
-print("Accuracy base, ejemplos adversarios, epsilon 1:", adv_test_accu_before_1)
-print("Accuracy base, ejemplos adversarios, epsilon 3:", adv_test_accu_before_3)
-print("Accuracy base, ejemplos adversarios, epsilon 5:", adv_test_accu_before_5)
-print("Accuracy base, ejemplos adversarios, epsilon 8:", adv_test_accu_before_8)
+for epsilon in epsilons:
+    if epsilon != 0:
+        x_adversarial_test, y_adversarial_test = next(generate_adversarials_by_image_list(random_images, epsilon=epsilon))
+        x_adversarial_test_epsilons.append(x_adversarial_test)
+        y_adversarial_test_epsilons.append(y_adversarial_test)
+        accuracy = model.evaluate(x=x_adversarial_test, y=y_adversarial_test, verbose=0)[1]
+    else:
+        accuracy = mm.to_test_model(model, imageNet)
+    adv_test_accu_before_epsilons.append(accuracy)
+    print(f"Accuracy base, epsilon {epsilon}: {accuracy}")
 
 model.fit(x_adversarial_train, y_adversarial_train, batch_size=batch_size, epochs=epochs,
           validation_data=imageNet.get_validation_set())
 
-adv_test_accu_after_01 = model.evaluate(x=x_adversarial_test_01, y=y_adversarial_test_01, verbose=0)[1]
-adv_test_accu_after_1 = model.evaluate(x=x_adversarial_test_1, y=y_adversarial_test_1, verbose=0)[1]
-adv_test_accu_after_3 = model.evaluate(x=x_adversarial_test_3, y=y_adversarial_test_3, verbose=0)[1]
-adv_test_accu_after_5 = model.evaluate(x=x_adversarial_test_5, y=y_adversarial_test_5, verbose=0)[1]
-adv_test_accu_after_8 = model.evaluate(x=x_adversarial_test_8, y=y_adversarial_test_8, verbose=0)[1]
-test_accuracy_after = mm.to_test_model(model, imageNet)
+adv_test_accu_after_epsilons = []
+for epsilon_index in range(len(epsilons)):
+    if epsilon_index != 0:
+        accuracy = model.evaluate(x=x_adversarial_test_epsilons[epsilon_index-1],
+                                  y=y_adversarial_test_epsilons[epsilon_index-1], verbose=0)[1]
+    else:
+        accuracy = mm.to_test_model(model, imageNet)
+    adv_test_accu_after_epsilons.append(accuracy)
+    print(f"Accuracy fitted, epsilon {epsilons[epsilon_index]}: {accuracy}")
 
-print("Accuracy fitted, ejemplos normales:", test_accuracy_after)
-print("Accuracy fitted, ejemplos adversarios, epsilon 0.1:", adv_test_accu_after_01)
-print("Accuracy fitted, ejemplos adversarios, epsilon 1:", adv_test_accu_after_1)
-print("Accuracy fitted, ejemplos adversarios, epsilon 3:", adv_test_accu_after_3)
-print("Accuracy fitted, ejemplos adversarios, epsilon 5:", adv_test_accu_after_5)
-print("Accuracy fitted, ejemplos adversarios, epsilon 8:", adv_test_accu_after_8)
-
-adv_test_accuracy_before = [test_accuracy_before, adv_test_accu_before_01, adv_test_accu_before_1, adv_test_accu_before_3,
-                            adv_test_accu_before_5, adv_test_accu_before_8]
-adv_test_accuracy_after = [test_accuracy_before, adv_test_accu_after_01, adv_test_accu_after_1, adv_test_accu_after_3,
-                           adv_test_accu_after_5, adv_test_accu_after_8]
-epsilons = [0, 0.1, 1, 3, 5, 8]
-
-plt.plot(epsilons, adv_test_accuracy_before, 'ro', label='Before adv. training')
-plt.plot(epsilons, adv_test_accuracy_before, 'bo', label='After adv. training')
+plt.plot(epsilons, adv_test_accu_before_epsilons, 'ro', label='Before adv. training')
+plt.plot(epsilons, adv_test_accu_after_epsilons, 'bo', label='After adv. training')
 plt.legend()
+plt.show()
+
+fig = plt.figure(figsize=(30, 30))
+columns = 10
+rows = 10
+count = 1
+saved_images = []
+for _ in range(10):
+    i = np.random.randint(list(x_adversarial_test_epsilons[0].shape)[0])
+    while i in saved_images:
+        i = np.random.randint(list(x_adversarial_test_epsilons[0].shape)[0])
+    for j in range(0, 2 * rows, 2):
+        x = x_adversarial_test_epsilons[j][i] * imageNet.std + imageNet.mean
+        a_min = np.min(x)
+        a_max = np.max(x)
+        a_scaled = (x - a_min) / (a_max - a_min)
+        fig.add_subplot(rows, columns, count)
+        count += 1
+
+        figs = plt.imshow(a_scaled, interpolation="nearest")
+        plt.axis('off')
+        figs.axes.get_xaxis().set_visible(False)
+        figs.axes.get_yaxis().set_visible(False)
 plt.show()
