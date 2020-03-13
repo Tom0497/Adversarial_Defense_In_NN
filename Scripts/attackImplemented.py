@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import tensorflow as tf
-import foolbox
 import sys
 
 from tensorflow.python.keras.applications.resnet50 import ResNet50, preprocess_input, decode_predictions
