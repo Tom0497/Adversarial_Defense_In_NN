@@ -128,13 +128,13 @@ print("Accuracy fitted, ejemplos adversarios, epsilon 3:", adv_test_accu_after_3
 print("Accuracy fitted, ejemplos adversarios, epsilon 5:", adv_test_accu_after_5)
 print("Accuracy fitted, ejemplos adversarios, epsilon 8:", adv_test_accu_after_8)
 
-adv_test_accuracy_before = [adv_test_accu_before_01, adv_test_accu_before_1, adv_test_accu_before_3,
+adv_test_accuracy_before = [test_accuracy_before, adv_test_accu_before_01, adv_test_accu_before_1, adv_test_accu_before_3,
                             adv_test_accu_before_5, adv_test_accu_before_8]
-adv_test_accuracy_after = [adv_test_accu_after_01, adv_test_accu_after_1, adv_test_accu_after_3,
+adv_test_accuracy_after = [test_accuracy_before, adv_test_accu_after_01, adv_test_accu_after_1, adv_test_accu_after_3,
                            adv_test_accu_after_5, adv_test_accu_after_8]
 epsilons = [0, 0.1, 1, 3, 5, 8]
 
-plt.plot(epsilons, test_accuracy_before + adv_test_accuracy_before, 'ro', label='Before adv. training')
-plt.plot(epsilons, test_accuracy_after + adv_test_accuracy_before, 'bo', label='After adv. training')
+plt.plot(epsilons, adv_test_accuracy_before, 'ro', label='Before adv. training')
+plt.plot(epsilons, adv_test_accuracy_before, 'bo', label='After adv. training')
 plt.legend()
 plt.show()
