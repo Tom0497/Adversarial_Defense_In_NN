@@ -6,8 +6,9 @@ from imagenetData import ImageNetData, labels_to_one_hot
 
 tf.compat.v1.enable_eager_execution()
 
+
 batch_size = 64
-epochs = 30
+epochs = 5
 images_per_class = 500
 batch_number = int(images_per_class / batch_size)
 dropout_rate = .2
@@ -57,6 +58,7 @@ def generate_adversarials(number_of_examples, epsilon=None, use_step_ll=False):
         x = []
         original_x = []
         y = []
+        n = -1
 
         x_train, y_train = imageNet.get_train_set()
 
@@ -121,8 +123,7 @@ def generate_adversarials_by_image_list(image_list, epsilon=None, use_step_ll=Fa
 
         yield x, y
 
-
-x_adversarial_train, x_original_train, y_adversarial_train = next(generate_adversarials(500, use_step_ll=True))
+x_adversarial_train, x_original_train, y_adversarial_train = next(generate_adversarials(300, use_step_ll=False))
 
 x_train, y_train = imageNet.get_train_set()
 
@@ -166,4 +167,27 @@ for epsilon_index in range(len(epsilons)):
 plt.plot(epsilons, adv_test_accu_before_epsilons, 'ro', label='Before adv. training')
 plt.plot(epsilons, adv_test_accu_after_epsilons, 'bo', label='After adv. training')
 plt.legend()
+plt.show()
+
+fig = plt.figure(figsize=(30, 30))
+columns = 10
+rows = 10
+count = 1
+saved_images = []
+for _ in range(10):
+    i = np.random.randint(list(x_adversarial_test_epsilons[0].shape)[0])
+    while i in saved_images:
+        i = np.random.randint(list(x_adversarial_test_epsilons[0].shape)[0])
+    for j in range(0, 2 * rows, 2):
+        x = x_adversarial_test_epsilons[j][i] * imageNet.std + imageNet.mean
+        a_min = np.min(x)
+        a_max = np.max(x)
+        a_scaled = (x - a_min) / (a_max - a_min)
+        fig.add_subplot(rows, columns, count)
+        count += 1
+
+        figs = plt.imshow(a_scaled, interpolation="nearest")
+        plt.axis('off')
+        figs.axes.get_xaxis().set_visible(False)
+        figs.axes.get_yaxis().set_visible(False)
 plt.show()
