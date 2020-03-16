@@ -1,6 +1,6 @@
 import numpy as np
 
-from tensorflow.python.keras import layers, models, optimizers, losses, regularizers
+from tensorflow.python.keras import layers, models, optimizers, losses
 from tensorflow.python.keras.applications.vgg16 import VGG16
 
 
@@ -96,7 +96,7 @@ def own_model_1(num_classes, dropout_rate):
     own_model_1_.summary()
 
     own_model_1_.compile(optimizer=optimizers.SGD(lr=0.001, momentum=0.9, nesterov=True),
-                         loss=losses.CategoricalCrossentropy(from_logits=True),
+                         loss="categorical_crossentropy",
                          metrics=['accuracy'])
 
     return own_model_1_

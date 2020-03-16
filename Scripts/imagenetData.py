@@ -13,35 +13,35 @@ from DataExtractor import *
 WIDTH, HEIGHT = 224, 224
 use_colab = False
 
-"""
+CLASSES_FILE = "imagenet_class_index.json"
+URLS_FILE = "fall11_urls.txt"
+
 if use_colab:
     # for google collaboratory purposes
     DIR_BINARIES = r"/content/drive/My Drive/ImageNetDataSets/ImageNet/Images"
+    DICT_FILE_PATH = os.path.join("/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID", CLASSES_FILE)
+    URLS_FILE_PATH = os.path.join("/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID", URLS_FILE)
+    URLS_FOLDER_PATH = os.path.join("/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID", "/urls")
 else:
     # for local use
-    DIR_BINARIES = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "images")
-
-classes_file = r"/imagenet_class_index.json"
-urls_file = r"/fall11_urls.txt"
-current_directory = os.getcwd()
-dict_path_ = r"/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID" + classes_file
-urls_path = r"/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID" + urls_file
-images_path = r"/content/drive/My Drive/ImageNetDataSets/ImageNet" + r"/Images"
-urls_folder_path = r"/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID" + r"/urls"
-"""
-DIR_BINARIES = r"/home/rai/Documentos/8vo Semestre/Inteligencia/Adversarial_Defense_In_NN/Scripts/images/"
-classes_file = r"/imagenet_class_index.json"
-urls_file = r"/fall11_urls.txt"
-current_directory = os.getcwd()
-dict_path_ = r"/home/rai/Documentos/8vo Semestre/Inteligencia/Adversarial_Defense_In_NN/image_metadata" + classes_file
-urls_path = r"/home/rai/Documentos/8vo Semestre/Inteligencia/Adversarial_Defense_In_NN/image_metadata" + urls_file
-images_path = r"/home/rai/Documentos/8vo Semestre/Inteligencia/Adversarial_Defense_In_NN/Scripts/images/"
-urls_folder_path = r"/home/rai/Documentos/8vo Semestre/Inteligencia/Adversarial_Defense_In_NN/image_metadata/urls"
+    cwd = os.getcwd()
+    directory_path = os.path.dirname(cwd)
+    DIR_BINARIES = os.path.join(os.path.dirname(directory_path), "images")
+    DICT_FILE_PATH = os.path.join(directory_path, "image_metadata", CLASSES_FILE)
+    URLS_FILE_PATH = os.path.join(directory_path, "image_metadata", URLS_FILE)
+    URLS_FOLDER_PATH = os.path.join(directory_path, "image_metadata", "urls")
 
 
 def get_sorted_dirs(path):
-    classes_dirs = os.listdir(DIR_BINARIES)
-    classes_nums = np.array([int(x.partition("_")[0]) for x in classes_dirs])
+    """
+    It receives a path to a folder that contains images separated by name in sub-folders,
+    then sorts them by name in ascending order.
+
+    :param path:    a path to a folder
+    :return:        a python dictionary with (key, value) --> (class_num, class_folder_name)
+    """
+    classes_dirs = os.listdir(path)
+    classes_nums = [int(x.partition("_")[0]) for x in classes_dirs]
     classes_dirs = [classes_dirs[i] for i in np.argsort(classes_nums)]
     classes_nums.sort()
     classes_dict = dict(zip(classes_nums, classes_dirs))
@@ -50,12 +50,12 @@ def get_sorted_dirs(path):
 
 def image_getter(path, images_per_class, label):
     """
-    Given a path to a image folder along with an specified extension, it reads al the images that fits the extension
-    an puts them into a list
+    Given a path to an image folder, it reads all the images in it an puts them into a list, if detects any
+    kind of error when reading one, it deletes it.
 
-    :param path:        			the path to folder along with the image extension
-    :param images_per_class:
-    :param label:
+    :param path:        			the path to the image folder
+    :param images_per_class:        the number of images to bring to memory
+    :param label:                   the label of the class in case more images are needed
     :return:            			a list of images
     """
     image_list = []
@@ -63,55 +63,63 @@ def image_getter(path, images_per_class, label):
     current_number_of_images = len(filename_list)
     if current_number_of_images < images_per_class:
         images_to_go = images_per_class - current_number_of_images
-        download_images_by_int_label(label, images_path,
-                                     urls_path,
-                                     urls_folder_path,
-                                     dict_path_,
+        download_images_by_int_label(label, DIR_BINARIES,
+                                     URLS_FILE_PATH,
+                                     URLS_FOLDER_PATH,
+                                     DICT_FILE_PATH,
                                      download_limit=images_to_go,
-                                     starting_url=current_number_of_images + 100)
+                                     starting_url=current_number_of_images + 500)
+
+    filename_list = os.listdir(path)
 
     for filename in filename_list:
+        image_path = os.path.join(path, filename)
         try:
-            im = image.load_img(path + r"/" + filename, target_size=(WIDTH, HEIGHT))
+            im = image.load_img(image_path, target_size=(WIDTH, HEIGHT))
             image_list.append(image.img_to_array(im))
         except IOError as e:
             print(e)
+            os.remove(image_path)
+
     return image_list
 
 
-def unpickle(path, classes_list, images_per_class):
+def unpickle(path, classes_labels_list, images_per_class):
     """
-    Reads a file that saves data in a pickle format the returns the data within it
+    Gets a certain number of images in a path specified by a folder path and an image class,
+    with the possibility of specifying more that just one class.
 
-    :param filename:        the path to the file that contains the data
-    :return:                an array o data-frame that contains the data from the file
+    :param images_per_class:        it determines how many images in the given class bring to memory
+    :param classes_labels_list:     a list which indicates the classes that'll be needed
+    :param path:                    the path to the images folder
+    :return:                        a python dictionary with both the images and the int label
     """
 
     classes_dirs = get_sorted_dirs(path)
     dic = {"data": [], "labels": []}
-    for i in classes_list:
-        the_path = path + r"/" + classes_dirs[i]
-        label = int(classes_dirs[i].partition("_")[0])
-        images = image_getter(the_path, images_per_class, label)
-        labels = [label for j in range(len(images))]
-        dic["data"] += images
-        dic["labels"] += labels
+    for label in classes_labels_list:
+        image_class_path = os.path.join(path, classes_dirs[label])
+        images_in_class = image_getter(image_class_path, images_per_class, label)
+        images_labels = [label for _ in range(len(images_in_class))]
+        dic["data"] += images_in_class
+        dic["labels"] += images_labels
     return dic
 
 
-def labels_to_one_hot(labels, number_of_classes):
+def labels_to_one_hot(original_labels, number_of_classes):
     """
     Converts list of integers to numpy 2D array with one-hot encoding
 
-    :param labels:      the labels associated with some data in a vector form
-    :return:            one-hot encoding version of labels, therefore in a matrix
+    :param number_of_classes:   how many classes are being classified
+    :param original_labels:     the labels associated with some data in a vector form
+    :return:                    one-hot encoding version of labels, therefore in a matrix
     """
-    n = len(labels)
+    n = len(original_labels)
     one_hot_labels = np.zeros([n, number_of_classes], dtype=int)
-    code_list = np.unique(labels)
+    code_list = np.unique(original_labels)
     code_ix = np.argsort(code_list)
     code_dict = {code_list[i]: code_ix[i] for i in range(len(code_list))}
-    labels_decoded = [code_dict[label] for label in labels]
+    labels_decoded = [code_dict[label] for label in original_labels]
     one_hot_labels[np.arange(n), np.asarray(labels_decoded)] = 1
     return one_hot_labels
 
@@ -120,22 +128,20 @@ class ImageNetData:
     """
     This class handles the use of ImageNet data set in one of its version, could be images of 8x8, 16x16, 32x32 or 64x64
     Besides handling the data loading, it provides methods for getting the data as batches, getting the epoch, and also
-    allows to get the validation and test data
+    allows to get the validation and test data.
     """
 
-    def __init__(self, classes_list, images_per_class=200, batch_size=100, validation_proportion=0.1,
-                 augment_data=False, img_size=224):
+    def __init__(self, classes_list, images_per_class=200, batch_size=32, validation_proportion=0.1,
+                 augment_data=False):
         """
         It handles the creation of an instance of the ImageNetData class
 
         :param batch_size:              the wanted size of the batches of images
         :param validation_proportion:   the proportion of the training data used for validation
         :param augment_data:            bool to indicate if data augmentation will be use
-        :param img_size:                the images' size, could be 8, 16, 32, 64
         """
 
         # Training set
-
         self.number_of_classes = len(classes_list)
         d = unpickle(DIR_BINARIES, classes_list, images_per_class)
         self.train_data = np.asarray(d['data']).astype(np.float32)
@@ -269,15 +275,15 @@ class ImageNetData:
 
 
 if __name__ == '__main__':
-    classes = [447, 530]  # 592, 950, 96]
-    imageNet8 = ImageNetData(classes, images_per_class=200,
+    classes = [592, 447]  # [950, 96, 530, 592, 447]
+    imageNet8 = ImageNetData(classes, images_per_class=500,
                              batch_size=32,
                              validation_proportion=0.2,
                              augment_data=False)
-    batch, batch_idx = imageNet8.next_batch()
-    print(batch_idx, imageNet8.n_batches, imageNet8.get_epoch())
-    batches = imageNet8.get_test_set(as_batches=True)
-    print(len(batches))
+    batch, example_batch_idx = imageNet8.next_batch()
+    print(example_batch_idx, imageNet8.n_batches, imageNet8.get_epoch())
+    examples_batches = imageNet8.get_test_set(as_batches=True)
+    print(len(examples_batches))
     data, labels = imageNet8.get_validation_set()
     print(labels.sum(axis=0))
     _, labels = imageNet8.get_test_set()

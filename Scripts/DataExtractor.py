@@ -7,13 +7,26 @@ import http.client
 import json
 import ssl
 
-classes_file = r"/imagenet_class_index.json"
-urls_file = r"/fall11_urls.txt"
-current_directory = os.getcwd()
-dict_path_ = r"/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID" + classes_file
-urls_path = r"/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID" + urls_file
-images_path = r"/content/drive/My Drive/ImageNetDataSets/ImageNet" + r"/Images"
-urls_folder_path = r"/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID" + r"/urls"
+CLASSES_FILE = r"/imagenet_class_index.json"
+URLS_FILE = r"/fall11_urls.txt"
+
+use_colab = False
+
+
+if use_colab:
+    # for google collaboratory purposes
+    DIR_BINARIES = r"/content/drive/My Drive/ImageNetDataSets/ImageNet/Images"
+    DICT_FILE_PATH = os.path.join("/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID", CLASSES_FILE)
+    URLS_FILE_PATH = os.path.join("/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID", URLS_FILE)
+    URLS_FOLDER_PATH = os.path.join("/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID", "/urls")
+else:
+    # for local use
+    cwd = os.getcwd()
+    directory_path = os.path.dirname(cwd)
+    DIR_BINARIES = os.path.join(os.path.dirname(directory_path), "images")
+    DICT_FILE_PATH = os.path.join(directory_path, "image_metadata", CLASSES_FILE)
+    URLS_FILE_PATH = os.path.join(directory_path, "image_metadata", URLS_FILE)
+    URLS_FOLDER_PATH = os.path.join(directory_path, "image_metadata", "urls")
 
 
 def get_dict_classes(path):
