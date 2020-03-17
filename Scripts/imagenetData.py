@@ -26,7 +26,7 @@ else:
     # for local use
     cwd = os.getcwd()
     directory_path = os.path.dirname(cwd)
-    DIR_BINARIES = os.path.join(directory_path, "images")
+    DIR_BINARIES = os.path.join(os.path.dirname(directory_path), "images")
     DICT_FILE_PATH = os.path.join(directory_path, "image_metadata", CLASSES_FILE)
     URLS_FILE_PATH = os.path.join(directory_path, "image_metadata", URLS_FILE)
     URLS_FOLDER_PATH = os.path.join(directory_path, "image_metadata", "urls")

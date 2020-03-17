@@ -1,5 +1,5 @@
+import matplotlib.pyplot as plt
 import numpy as np
-
 from tensorflow.python.keras import layers, models, optimizers, losses
 from tensorflow.python.keras.applications.vgg16 import VGG16
 
@@ -176,3 +176,34 @@ def to_test_model(classification_model, data_pipeline):
         accs.append(acc)
     mean_acc = np.array(accs).mean()
     return mean_acc
+
+
+def plot_learning_curves(model_history, model_epochs):
+    """
+    It plots the learning curves of a model through its model history and the number of epochs used
+    to train it, in specific utilizes both the train and validation loss and accuracy to show the
+    progress of a model in its training stage.
+
+    :param model_history:       a dict which contains the history of the model, loss and accuracy.
+    :param model_epochs:        an int which tells for how many epochs the model was trained.
+    """
+    acc = model_history.history['acc']
+    val_acc = model_history.history['val_acc']
+
+    loss = model_history.history['loss']
+    val_loss = model_history.history['val_loss']
+
+    epochs_range = range(model_epochs)
+
+    plt.figure()
+    plt.plot(epochs_range, acc, label='Training Accuracy')
+    plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+    plt.legend(loc='lower right')
+    plt.title('Training and Validation Accuracy')
+
+    plt.figure()
+    plt.plot(epochs_range, loss, label='Training Loss')
+    plt.plot(epochs_range, val_loss, label='Validation Loss')
+    plt.legend(loc='upper right')
+    plt.title('Training and Validation Loss')
+    plt.show()

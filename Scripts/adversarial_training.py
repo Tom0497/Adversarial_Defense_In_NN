@@ -6,9 +6,8 @@ from imagenetData import ImageNetData, labels_to_one_hot
 
 tf.compat.v1.enable_eager_execution()
 
-
 batch_size = 64
-epochs = 5
+epochs = 50
 images_per_class = 500
 batch_number = int(images_per_class / batch_size)
 dropout_rate = .2
@@ -129,8 +128,7 @@ x_train, y_train = imageNet.get_train_set()
 
 x_adversarial_train, x_original_train, y_adversarial_train = next(generate_adversarials(examples=x_train,
                                                                                         labels=y_train,
-                                                                                        number_of_examples=300))
-
+                                                                                        number_of_examples=len(y_train)))
 
 x_test, y_test = imageNet.get_train_set()
 
@@ -145,7 +143,6 @@ x_adversarial_test_epsilons = []
 y_adversarial_test_epsilons = []
 adv_test_accu_before_epsilons = []
 
-
 for epsilon in epsilons:
     if epsilon != 0:
         x_adversarial_test, _, y_adversarial_test = next(generate_adversarials(examples=x_test, labels=y_test,
@@ -158,7 +155,6 @@ for epsilon in epsilons:
         accuracy = mm.to_test_model(model, imageNet)
     adv_test_accu_before_epsilons.append(accuracy)
     print(f"Accuracy base, epsilon {epsilon}: {accuracy}")
-
 
 x_val, y_val = imageNet.get_validation_set()
 validation_adv_clean_proportion = 0.5
@@ -176,14 +172,14 @@ for index, example in enumerate(x_val):
 ensemble_x_val = np.r_[np.asarray(x_val_final), x_adversarial_val]
 ensemble_y_val = np.r_[np.asarray(y_val_final), y_adversarial_val]
 
-model.fit(x_adversarial_train, y_adversarial_train, batch_size=batch_size, epochs=epochs,
-          validation_data=(ensemble_x_val, ensemble_y_val))
+history = model.fit(x_adversarial_train, y_adversarial_train, batch_size=batch_size, epochs=epochs,
+                    validation_data=(ensemble_x_val, ensemble_y_val))
 
 adv_test_accu_after_epsilons = []
 for epsilon_index in range(len(epsilons)):
     if epsilon_index != 0:
-        accuracy = model.evaluate(x=x_adversarial_test_epsilons[epsilon_index-1],
-                                  y=y_adversarial_test_epsilons[epsilon_index-1], verbose=0)[1]
+        accuracy = model.evaluate(x=x_adversarial_test_epsilons[epsilon_index - 1],
+                                  y=y_adversarial_test_epsilons[epsilon_index - 1], verbose=0)[1]
     else:
         accuracy = mm.to_test_model(model, imageNet)
     adv_test_accu_after_epsilons.append(accuracy)
@@ -215,4 +211,7 @@ for _ in range(10):
         plt.axis('off')
         figs.axes.get_xaxis().set_visible(False)
         figs.axes.get_yaxis().set_visible(False)
+
+mm.plot_learning_curves(history, epochs)
+
 plt.show()
