@@ -4,119 +4,83 @@ from tensorflow.python.keras import layers, models, optimizers, losses
 from tensorflow.python.keras.applications.vgg16 import VGG16
 
 
-def define_model(num_classes, own_num=0, use_pre_trained=False, dropout_rate=0.2):
+def define_model(num_classes, use_pre_trained=False, learning_rate=0.001, dropout_rate=0.2):
     """
-    It returns the model that'll be used for image classification.
+    It returns the model that'll be used for image classification. In any of both possible cases, the optimizer is
+    SGD with Nesterov momentum.
 
+    :param learning_rate:       the learning rate used for the optimizer.
     :param dropout_rate:        the dropout rate in case it applies
-    :param own_num:             it specifies which own model to use
     :param num_classes:         the number of classes that's beign classified
     :param use_pre_trained:     whether or not to use a pretrained model
     :return:                    a tensorflow.keras model
     """
     if use_pre_trained:
-        return tl_model(num_classes)
+        return tl_model(num_classes, learning_rate=learning_rate)
     else:
-        if own_num == 0:
-            return own_model(num_classes)
-        elif own_num == 1:
-            return own_model_1(num_classes, dropout_rate=dropout_rate)
+        return own_model(num_classes, dropout_rate=dropout_rate, learning_rate=learning_rate)
 
 
-def own_model(num_classes):
-    """
-    It defines the layers and structure of the CNN used to classify images.
-
-    :param num_classes:     the number of classes that the model classify
-    :return:                return a tensorflow.keras model
-    """
-
-    own_model_ = models.Sequential()
-
-    own_model_.add(layers.Conv2D(16, (7, 7), activation='relu', padding='same',
-                                 input_shape=(224, 224, 3), kernel_initializer='he_uniform'))
-    own_model_.add(layers.MaxPooling2D((2, 2)))
-
-    own_model_.add(layers.Conv2D(64, (5, 5), activation='relu', padding='same', kernel_initializer='he_uniform'))
-    own_model_.add(layers.MaxPooling2D((2, 2)))
-
-    own_model_.add(layers.Conv2D(128, (3, 3), activation='relu', padding='same', kernel_initializer='he_uniform'))
-    own_model_.add(layers.MaxPooling2D((2, 2)))
-
-    own_model_.add(layers.Conv2D(16, (7, 7), activation='relu', padding='same', kernel_initializer='he_uniform'))
-    own_model_.add(layers.MaxPooling2D((2, 2)))
-
-    own_model_.add(layers.Conv2D(num_classes, (1, 1)))
-    own_model_.add(layers.GlobalAveragePooling2D())
-
-    own_model_.summary()
-
-    own_model_.compile(optimizer=optimizers.RMSprop(),
-                       loss=losses.CategoricalCrossentropy(from_logits=True),
-                       metrics=['accuracy'])
-
-    return own_model_
-
-
-def own_model_1(num_classes, dropout_rate):
+def own_model(num_classes, dropout_rate, learning_rate):
     """
     It defines the structure and layers of the CNN model used for classification, it has a MLP as
     classifier at its bottom.
 
+    :param learning_rate:   the learning_rate used for the optimizer.
     :param num_classes:     the number of classes that the model classify
     :param dropout_rate:    sets the dropout rate for the dense layers of the model
     :return:                return a tensorflow.keras model
     """
-    own_model_1_ = models.Sequential()
+    model = models.Sequential()
 
-    own_model_1_.add(layers.Conv2D(16, (7, 7), activation='relu', padding='same', input_shape=(224, 224, 3),
-                                   kernel_initializer='he_uniform'))
-    own_model_1_.add(layers.MaxPooling2D((2, 2)))
+    model.add(layers.Conv2D(16, (7, 7), activation='relu', padding='same', input_shape=(224, 224, 3),
+                            kernel_initializer='he_uniform'))
+    model.add(layers.MaxPooling2D((2, 2)))
 
-    own_model_1_.add(layers.Conv2D(32, (7, 7), activation='relu', padding='same',
-                                   kernel_initializer='he_uniform'))
-    own_model_1_.add(layers.MaxPooling2D((2, 2)))
+    model.add(layers.Conv2D(32, (7, 7), activation='relu', padding='same',
+                            kernel_initializer='he_uniform'))
+    model.add(layers.MaxPooling2D((2, 2)))
 
-    own_model_1_.add(layers.Conv2D(64, (7, 7), activation='relu', padding='same',
-                                   kernel_initializer='he_uniform'))
-    own_model_1_.add(layers.MaxPooling2D((2, 2)))
+    model.add(layers.Conv2D(64, (7, 7), activation='relu', padding='same',
+                            kernel_initializer='he_uniform'))
+    model.add(layers.MaxPooling2D((2, 2)))
 
-    own_model_1_.add(layers.Conv2D(128, (7, 7), activation='relu', padding='same',
-                                   kernel_initializer='he_uniform'))
-    own_model_1_.add(layers.MaxPooling2D((2, 2)))
+    model.add(layers.Conv2D(128, (7, 7), activation='relu', padding='same',
+                            kernel_initializer='he_uniform'))
+    model.add(layers.MaxPooling2D((2, 2)))
+    model.add(layers.Conv2D(64, (1, 1), activation='relu', kernel_initializer='he_uniform'))
 
-    own_model_1_.add(layers.Conv2D(64, (1, 1), activation='relu', kernel_initializer='he_uniform'))
+    model.add(layers.Flatten())
+    model.add(layers.Dropout(dropout_rate))
+    model.add(layers.Dense(128, activation='relu', kernel_initializer='he_uniform'))
 
-    own_model_1_.add(layers.Flatten())
-    own_model_1_.add(layers.Dropout(dropout_rate))
-    own_model_1_.add(layers.Dense(128, activation='relu', kernel_initializer='he_uniform'))
+    model.add(layers.Dense(num_classes, activation='sigmoid', kernel_initializer='he_uniform'))
 
-    own_model_1_.add(layers.Dense(num_classes, activation='sigmoid', kernel_initializer='he_uniform'))
+    model.summary()
 
-    own_model_1_.summary()
+    model.compile(optimizer=optimizers.SGD(lr=learning_rate, momentum=0.9, nesterov=True),
+                  loss=losses.CategoricalCrossentropy(from_logits=True),
+                  metrics=['accuracy'])
 
-    own_model_1_.compile(optimizer=optimizers.SGD(lr=0.001, momentum=0.9, nesterov=True),
-                         loss="categorical_crossentropy",
-                         metrics=['accuracy'])
-
-    return own_model_1_
+    return model
 
 
-def tl_model(num_classes):
+def tl_model(num_classes, learning_rate):
     """
     It gives a model based on a pre-trained classification model like VGG16 for example, giving
     the possibility of using a big model without training it.
 
+    :param learning_rate:   the learning rate used for the SGD optimizer.
     :param num_classes:     the number of classes that the model classify
     :return:                return a tensorflow.keras model
     """
 
-    tl_model_ = VGG16(include_top=False, input_shape=(224, 224, 3))
+    model = VGG16(include_top=False, input_shape=(224, 224, 3))
 
-    for layer in tl_model_.layers:
+    for layer in model.layers:
         layer.trainable = False
 
-    conv1 = layers.Conv2D(128, (1, 1), kernel_initializer='he_uniform')(tl_model_.layers[-1].output)
+    conv1 = layers.Conv2D(128, (1, 1), kernel_initializer='he_uniform')(model.layers[-1].output)
     conv2 = layers.Conv2D(64, (1, 1), kernel_initializer='he_uniform')(conv1)
     conv3 = layers.Conv2D(32, (1, 1), kernel_initializer='he_uniform')(conv2)
 
@@ -124,15 +88,15 @@ def tl_model(num_classes):
     flat2 = layers.Dense(128, activation='relu', kernel_initializer='he_uniform')(flat1)
     output = layers.Dense(num_classes, activation='sigmoid')(flat2)
 
-    tl_model_ = models.Model(inputs=tl_model_.inputs, outputs=output)
+    model = models.Model(inputs=model.inputs, outputs=output)
 
-    tl_model_.summary()
+    model.summary()
 
-    tl_model_.compile(optimizer=optimizers.SGD(lr=0.001, momentum=0.9, nesterov=True),
-                      loss=losses.CategoricalCrossentropy(from_logits=True),
-                      metrics=['accuracy'])
+    model.compile(optimizer=optimizers.SGD(lr=learning_rate, momentum=0.9, nesterov=True),
+                  loss=losses.CategoricalCrossentropy(from_logits=True),
+                  metrics=['accuracy'])
 
-    return tl_model_
+    return model
 
 
 def validate_model(classification_model, data_pipeline):
