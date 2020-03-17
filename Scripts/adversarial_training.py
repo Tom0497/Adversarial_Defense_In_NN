@@ -18,7 +18,7 @@ imageNet = ImageNetData(classes, images_per_class=500,
                         batch_size=batch_size, validation_proportion=0.4)
 
 model = mm.define_model(n_classes, use_pre_trained=True)
-model.load_weights('best_pretrained_weights.hdf5')
+model.load_weights('best_model_val_loss.hdf5')
 
 
 def adversarial_pattern(image, label):
@@ -53,24 +53,25 @@ def adversarial_step_ll(image):
     return signed_grad
 
 
-def generate_adversarials(number_of_examples, epsilon=None, use_step_ll=False):
+def generate_adversarials(examples, labels, number_of_examples=None, image_list=None, epsilon=None, use_step_ll=False):
     while True:
         x = []
         original_x = []
         y = []
-        n = -1
 
-        x_train, y_train = imageNet.get_train_set()
+        if image_list is None:
+            image_list = list(range(len(labels)))
+            np.random.shuffle(image_list)
 
-        ns = list(range(len(y_train)))
-        np.random.shuffle(ns)
+        if number_of_examples is None:
+            number_of_examples = len(image_list)
+
         for example in range(number_of_examples):
-
-            n = ns[example]
+            n = image_list[example]
             original_x.append(n)
 
-            label = y_train[n]
-            image = x_train[n]
+            label = labels[n]
+            image = examples[n]
 
             if use_step_ll:
                 perturbations = adversarial_step_ll(image.reshape(1, 224, 224, 3)).numpy()
@@ -83,7 +84,7 @@ def generate_adversarials(number_of_examples, epsilon=None, use_step_ll=False):
             adversarial = image + perturbations * epsilon
 
             x.append(adversarial)
-            y.append(y_train[n])
+            y.append(labels[n])
 
         x = np.asarray(x).reshape((number_of_examples, 224, 224, 3))
         original_x = np.asarray(original_x)
@@ -123,25 +124,33 @@ def generate_adversarials_by_image_list(image_list, epsilon=None, use_step_ll=Fa
 
         yield x, y
 
-x_adversarial_train, x_original_train, y_adversarial_train = next(generate_adversarials(300, use_step_ll=False))
 
 x_train, y_train = imageNet.get_train_set()
 
+x_adversarial_train, x_original_train, y_adversarial_train = next(generate_adversarials(examples=x_train,
+                                                                                        labels=y_train,
+                                                                                        number_of_examples=300))
+
+
+x_test, y_test = imageNet.get_train_set()
 
 number_of_adv_examples = 100
-random_images = list(range(len(y_train)))
+random_images = list(range(len(y_test)))
 np.random.shuffle(random_images)
 random_images = random_images[:number_of_adv_examples]
 
-epsilons = np.linspace(0, 2, num=20)
+epsilons = np.linspace(0, 2, num=10)
 
 x_adversarial_test_epsilons = []
 y_adversarial_test_epsilons = []
 adv_test_accu_before_epsilons = []
 
+
 for epsilon in epsilons:
     if epsilon != 0:
-        x_adversarial_test, y_adversarial_test = next(generate_adversarials_by_image_list(random_images, epsilon=epsilon))
+        x_adversarial_test, _, y_adversarial_test = next(generate_adversarials(examples=x_test, labels=y_test,
+                                                                               image_list=random_images,
+                                                                               epsilon=epsilon))
         x_adversarial_test_epsilons.append(x_adversarial_test)
         y_adversarial_test_epsilons.append(y_adversarial_test)
         accuracy = model.evaluate(x=x_adversarial_test, y=y_adversarial_test, verbose=0)[1]
@@ -151,8 +160,24 @@ for epsilon in epsilons:
     print(f"Accuracy base, epsilon {epsilon}: {accuracy}")
 
 
+x_val, y_val = imageNet.get_validation_set()
+validation_adv_clean_proportion = 0.5
+val_adv_number = int(len(y_val) * validation_adv_clean_proportion)
+x_adversarial_val, x_original_val, y_adversarial_val = next(generate_adversarials(examples=x_val, labels=y_val,
+                                                                                  number_of_examples=val_adv_number))
+
+x_val_final = []
+y_val_final = []
+for example, index in enumerate(x_val):
+    if index not in x_original_val:
+        x_val_final.append(example)
+        y_val_final.append(y_val[index])
+
+ensemble_x_val = x_val_final + x_adversarial_val
+ensemble_y_val = y_val_final + y_adversarial_val
+
 model.fit(x_adversarial_train, y_adversarial_train, batch_size=batch_size, epochs=epochs,
-          validation_data=imageNet.get_validation_set())
+          validation_data=(ensemble_x_val, ensemble_y_val))
 
 adv_test_accu_after_epsilons = []
 for epsilon_index in range(len(epsilons)):
