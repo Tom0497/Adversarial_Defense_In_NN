@@ -139,7 +139,7 @@ random_images = list(range(len(y_test)))
 np.random.shuffle(random_images)
 random_images = random_images[:number_of_adv_examples]
 
-epsilons = np.linspace(0, 2, num=10)
+epsilons = np.linspace(0, 2, num=21)
 
 x_adversarial_test_epsilons = []
 y_adversarial_test_epsilons = []
@@ -168,13 +168,13 @@ x_adversarial_val, x_original_val, y_adversarial_val = next(generate_adversarial
 
 x_val_final = []
 y_val_final = []
-for example, index in enumerate(x_val):
+for index, example in enumerate(x_val):
     if index not in x_original_val:
         x_val_final.append(example)
         y_val_final.append(y_val[index])
 
-ensemble_x_val = x_val_final + x_adversarial_val
-ensemble_y_val = y_val_final + y_adversarial_val
+ensemble_x_val = np.r_[np.asarray(x_val_final), x_adversarial_val]
+ensemble_y_val = np.r_[np.asarray(y_val_final), y_adversarial_val]
 
 model.fit(x_adversarial_train, y_adversarial_train, batch_size=batch_size, epochs=epochs,
           validation_data=(ensemble_x_val, ensemble_y_val))
