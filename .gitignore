@@ -225,5 +225,7 @@ data/
 
 # Weights of a trained model
 *.hdf5
+Scripts/trainHistoryLogs/
+Scripts/trainModelsWeights/
 
 # End of https://www.gitignore.io/api/python,pycharm+all

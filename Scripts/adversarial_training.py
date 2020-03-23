@@ -83,7 +83,7 @@ if __name__ == "__main__":
                                  mode='min', save_weights_only=True)
 
     history = model.fit(x_adversarial_train, y_adversarial_train, batch_size=batch_size, epochs=epochs,
-                        validation_data=(x_val_final, y_val_final))
+                        validation_data=(x_val_final, y_val_final), callback=[checkpoint])
 
     model.load_weights('best_adv_model_val_loss.hdf5')
 
