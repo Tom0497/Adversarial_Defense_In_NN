@@ -234,13 +234,13 @@ def plot_learning_curves(model_history, show_train_time=False, opt=None, lr=None
         plt.plot(epochs_range, epoch_time, marker='o')
         plt.hlines(train_time/epochs, epochs_range[0], epochs_range[-1], label='average', colors='r', alpha=.5)
         plt.xlabel('Epoch')
-        plt.ylabel('Time (Seg)')
+        plt.ylabel('Time (Sec)')
         plt.legend()
         plt.title('Training time per epoch' + title_append)
         plt.tight_layout()
         plt.show()
 
-    print('Loss and accuracy in test set : loss {0:.2f} accuracy {1:.2f}'.format(test_loss, test_acc))
+    print('Loss and accuracy in test set : loss {0:.4f} accuracy {1:.4f}'.format(test_loss, test_acc))
     print('Total time for training {0} epochs : {1:5.2f} min'.format(epochs, train_time/60))
 
 

@@ -10,12 +10,12 @@ from tensorflow.python.keras.callbacks import ModelCheckpoint
 if __name__ == "__main__":
     batch_size = 64
     images_per_class = 500
-    epochs = 15
+    epochs = 50
     classes = [96, 950, 530]  # [447, 530, 592, 950, 96]
     n_classes = len(classes)
 
-    learning_rates = [0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001]
-    optimizers_names = ['sgd', 'adam', 'rmsprop', 'adagrad']
+    learning_rates = [0.0001]  # [0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001]
+    optimizers_names = ['adam']  # ['sgd', 'adam', 'rmsprop', 'adagrad']
 
     imageNet = ImageNetData(classes, images_per_class=500,
                             batch_size=batch_size, validation_proportion=0.4)
@@ -57,9 +57,9 @@ if __name__ == "__main__":
 
             # print('Results for {0} optimizer and learning rate {1}'.format(opt, lr))
 
-            # mm.plot_learning_curves(history.history)
+            mm.plot_learning_curves(history.history)
             register[model_name] = history.history
 
-    f = open('trainHistoryLogs/train_models_hist.pkl', 'wb')
+    f = open('trainHistoryLogs/model_adam_0001_hist.pkl', 'wb')
     dump(register, f)
     f.close()
