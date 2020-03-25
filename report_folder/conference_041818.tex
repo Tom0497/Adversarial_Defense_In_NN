@@ -128,19 +128,6 @@ Dado lo anterior, se elige el modelo \textit{VGG16} para servir de \textit{featu
 
 La arquitectura del modelo utilizado esta dada por:
 
-\begin{table}[!t]
-    \centering
-    \caption{Arquitectura de la red convolucional implementada para la tarea de defensa adversaria.}
-    \label{defense_model}
-    \begin{tabular}{c} 
-    \toprule 
-    Configuración de Red
-    \midrule
-     conv3-64 \\ conv3-64 
-    \bottomrule
-    \end{tabular}
-\end{table}
-
 \subsection{Generación adversaria}
 Se compararán cuatro algoritmos para la generación de ejemplos adversarios: \textit{Fast Gradient Sign Method} \cite{goodfellow2014}, \textit{Fast Gradient Method} \cite{kurakin2016}, \textit{Random Fast Sign Gradient Method} \cite{tramer2017}, \textit{One-Step Least Likely Class} \cite{kurakin2016} y \textit{DeepFool} \cite{deepfool}. Los cuatro primeros se denominan ataques de un paso, es decir, realizan solo un cálculo de gradiente, mientras que el último es un ataque iterativo, pues se calculan iterativamente varios gradientes \cite{kurakin2016} para obtener el ejemplo adversario. Antes de mostrar la teoría subyacente a estos algoritmos, se debe establecer notación. Dado un modelo de \textit{deep learning} ya entrenado $f$, con pesos $\bm{\theta}$, se notará por $\bm{x}$ a alguna entrada, y por $y$ a la etiqueta de esta, con $f(\bm{x})=y$. Dado un ejemplo adversario $\bm{x}'$ tal que $f(\bm{x}')=y'$ con $y \neq y'$, se define $\bm{\eta} = \bm{x}' - \bm{x}$ como la perturbación añadida a $\bm{x}$. Con esto se tiene que, en general, el generar un ejemplo adversario $\bm{x}'$ puede ser descrito como el problema de optimización con restricciones \cite{yuan2017}:
 \begin{equation}\label{problemaoriginal}
