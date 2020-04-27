@@ -1,194 +1,147 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import os
-import tensorflow as tf
-import sys
 import time
 
-from DataExtractor import get_labels_for_wnid
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
 from tensorflow.python.keras.applications.resnet50 import ResNet50, preprocess_input, decode_predictions
-from utils import image_getter
+from utils import image_getter, restore_original_image_from_array, plot_image_comparison
 
 tf.compat.v1.enable_eager_execution()
 
+DICT_FILE_PATH = '../image_metadata/imagenet_class_index.json'
+IMAGES_PATH = '../images'
+NUM_CLASSES = 1000
 
-def adversarial_pattern(model, image, label):
-    image = tf.cast(image, tf.float32)
+# TODO: in next two funcs, make it work by batches when len(images) > 20 approx, otherwise runs out of mem
+# TODO: consider making only prediction by batches first, if fails then do whole process by batches, but internally
 
+
+def adversarial_pattern(model, images, labels):
+    images = tf.cast(images, tf.float32)
+    loss_object = tf.keras.losses.CategoricalCrossentropy()
     with tf.GradientTape() as tape:
-        tape.watch(image)
-        prediction = model(image)
-        loss = tf.keras.losses.MSE(label, prediction)
+        tape.watch(images)
+        prediction = model(images)
+        loss = loss_object(labels, prediction)
 
-    gradient = tape.gradient(loss, image)
+    gradient = tape.gradient(loss, images)
 
     return gradient
 
 
-def adversarial_step_ll(model, image, num_classes):
-    image = tf.cast(image, tf.float32)
+def adversarial_step_ll(model, images, num_classes):
+    images = tf.cast(images, tf.float32)
+    loss_object = tf.keras.losses.CategoricalCrossentropy()
 
     with tf.GradientTape() as tape:
-        tape.watch(image)
-        prediction = model(image)
-        y_ll = model(image).numpy().argmin()
-        y_ll = labels_to_one_hot([y_ll], num_classes)[0]
-        loss = tf.keras.losses.MSE(y_ll, prediction)
+        tape.watch(images)
+        prediction = model(images)
+        y_ll = prediction.numpy().argmin(axis=1)
+        y_ll = tf.one_hot(y_ll, num_classes)
+        loss = loss_object(y_ll, prediction)
 
-    gradient = tape.gradient(loss, image)
+    signed_gradient = -1*tape.gradient(loss, images)
 
-    signed_grad = -1 * tf.sign(gradient)
-
-    return signed_grad
-
-
-def labels_to_one_hot(original_labels, number_of_classes):
-    """
-    Converts list of integers to numpy 2D array with one-hot encoding
-
-    :param number_of_classes:   how many classes are being classified
-    :param original_labels:     the labels associated with some data in a vector form
-    :return:                    one-hot encoding version of labels, therefore in a matrix
-    """
-    n = len(original_labels)
-    one_hot_labels = np.zeros([n, number_of_classes], dtype=int)
-    code_list = np.unique(original_labels)
-    code_ix = np.argsort(code_list)
-    code_dict = {code_list[i]: code_ix[i] for i in range(len(code_list))}
-    labels_decoded = [code_dict[label] for label in original_labels]
-    one_hot_labels[np.arange(n), np.asarray(labels_decoded)] = 1
-    return one_hot_labels
+    return signed_gradient
 
 
 if __name__ == "__main__":
-    use_step_ll = False
-    plot_resulting_examples = False
-    attack_type = 'rfgs'
+    plot_resulting_examples = True
+    attack_type = 'fgsm'
+
+    actual_num_classes = 20   # cambiar aqui para cambiar el numero de clases a usar
+    images_per_class = 1      # cambiar aqui para cambiar el numero de imagenes por clase a usar
 
     model = ResNet50(weights='imagenet')
     model.compile(optimizer=tf.keras.optimizers.RMSprop(),
                   loss=tf.keras.losses.CategoricalCrossentropy(),
                   metrics=[tf.keras.metrics.CategoricalAccuracy(), tf.keras.metrics.TopKCategoricalAccuracy(k=5)])
 
-    inputs = sys.argv
-    current_directory = os.getcwd()
-    directory_path = os.path.dirname(current_directory)
-    CLASSES_FILE = "imagenet_class_index.json"
-    DICT_FILE_PATH = os.path.join(directory_path, "image_metadata", CLASSES_FILE)
-    images_path = os.path.dirname(current_directory) + "/images"
+    img_folder_names = os.listdir(IMAGES_PATH)[:actual_num_classes]
+    dirs = [os.path.join(IMAGES_PATH, img_dir) for img_dir in img_folder_names]
 
-    folders_names = os.listdir(images_path)
-    dirs = [images_path + "/" + img_dir + "/" for img_dir in folders_names]
+    img_folder_dirs = dict(zip(img_folder_names, dirs))
 
     labels = []
     images = []
 
-    actual_num_classes = 50  # cambiar aquí para cambiar el número de clases a usar
-    images_per_class = 1           # cambiar aquí para cambiar el número de imágenes por clase a usar
-
-    dirs = dirs[:actual_num_classes]
-
-    for img_dir in dirs:
-        n_class = int(img_dir.split("/")[-2].split("_")[0])
+    for img_folder_name in img_folder_names:
+        n_class = int(img_folder_name.split("_")[0])
         labels += [n_class] * images_per_class
+        images += image_getter(img_folder_dirs[img_folder_name])[:images_per_class]
 
-    num_classes = 1000
-    one_hot_labels = labels_to_one_hot(labels, num_classes)
+    images = preprocess_input(np.array(images))
+    one_hot_labels = tf.one_hot(labels, NUM_CLASSES)
 
     accuracy_list = []
     accuracy_5_list = []
 
-    epsilons = np.linspace(0, 10000, 6)
+    epsilons = np.linspace(0, 10, 11)
+    plotted_idx = []
 
     for epsilon in epsilons:
-        epsilon_og = epsilon
+
         alpha = epsilon / 2
+        if epsilon == 0:
+            start = time.process_time()
+            _, accu_1, accu_5 = model.evaluate(x=images.copy(), y=one_hot_labels)
+        else:
+            start = time.process_time()
 
-        aciertos = []
-        aciertos_5 = []
+            if attack_type == 'step_ll':
+                perturbations = adversarial_step_ll(model, images, NUM_CLASSES).numpy()
+                perturbations = np.array([pert/np.linalg.norm(pert) for pert in perturbations])
 
-        img_idx = 0
+            elif attack_type == 'rfgs':
+                images += alpha * np.random.randn(*images.shape)
+                epsilon -= alpha
+                perturbations = adversarial_pattern(model, images, one_hot_labels).numpy()
+                perturbations = np.array([pert/np.linalg.norm(pert) for pert in perturbations])
 
-        for img_dir in dirs:
-            images = image_getter(img_dir)
+            elif attack_type == 'fg':
+                perturbations = adversarial_pattern(model, images, one_hot_labels).numpy()
+                perturbations = np.array([pert/np.linalg.norm(pert) for pert in perturbations])
 
-            images = images[:images_per_class]
+            elif attack_type == 'fgsm':
+                perturbations = tf.sign(adversarial_pattern(model, images, one_hot_labels)).numpy()
+                perturbations = np.array([pert/np.linalg.norm(pert) for pert in perturbations])
 
-            assert (len(images) == images_per_class)
+            else:
+                print('No attack seems to fit with the attack given')
+                break
 
-            for img in images:
-                img = preprocess_input(img.copy())
+            img_adversarial = images + 388 * perturbations * epsilon  # 388 = (224*224*3)**0.5
+            _, accu_1, accu_5 = model.evaluate(x=img_adversarial.copy(), y=one_hot_labels)
 
-                if epsilon == 0:
-                    start = time.process_time()
-                    y_pred = model.predict(img.copy()[np.newaxis, :])
+            epsilon = epsilon if attack_type != 'rfgs' else epsilon + alpha
 
-                else:
-                    start = time.process_time()
-                    label = one_hot_labels[img_idx]
+            if plot_resulting_examples:
+                idx_ex = np.random.randint(0, len(images))
+                while idx_ex in plotted_idx:
+                    idx_ex = np.random.randint(0, len(images))
+                plotted_idx.append(idx_ex)
 
-                    if use_step_ll:
-                        perturbations = \
-                            adversarial_step_ll(model, img.copy().reshape((1, 224, 224, 3)), num_classes).numpy()
-                    else:
-                        if attack_type == 'rfgs':
-                            img += alpha * np.random.randn(img.shape[0], img.shape[1], img.shape[2])
-                            epsilon -= alpha
+                img_example = images[idx_ex].copy()
+                img_adv_example = img_adversarial[idx_ex].copy()
 
-                        output_gradient = adversarial_pattern(model, img.reshape((1, 224, 224, 3)), label)
+                _, reg_class, confidence = decode_predictions(model.predict(img_example[np.newaxis, :]))[0][0]
+                _, adv_class, adv_confidence = decode_predictions(model.predict(img_adv_example[np.newaxis, :]))[0][0]
 
-                        if attack_type == 'fg':
-                            perturbations = (output_gradient.numpy() / np.linalg.norm(output_gradient.numpy()))
-                        else:
-                            perturbations = tf.sign(output_gradient).numpy()
+                img_example = restore_original_image_from_array(img_example)
+                img_adv_example = restore_original_image_from_array(img_adv_example)
 
-                    img_adversarial = img + perturbations * epsilon
+                plot_image_comparison(img_example, img_adv_example,
+                                      title_img='Original: {0} \n Confidence= {1:.1f}%'.format(reg_class,
+                                                                                               confidence*100),
+                                      title_adv='Adversarial: {0} \n Confidence= {1:.1f}%'.format(adv_class,
+                                                                                                  adv_confidence*100),
+                                      title_diff='Difference \n epsilon= {}'.format(epsilon))
 
-                    img_adv = img_adversarial.copy()
-                    img_adv = img_adv[0]
-                    difference = img_adv.copy() - img.copy()
-
-                    y_pred = model.predict(img_adv.copy()[np.newaxis, :])
-
-                    if plot_resulting_examples:
-                        plt.figure()
-
-                        plt.subplot(1, 3, 1)
-                        plt.imshow(img.copy() / 255)
-                        plt.axis('off')
-
-                        plt.subplot(1, 3, 2)
-                        plt.imshow(difference / abs(difference).max() * 0.2 + 0.5)
-                        plt.axis('off')
-
-                        plt.subplot(1, 3, 3)
-                        plt.imshow(img_adv / 255)
-                        plt.axis('off')
-
-                        plt.tight_layout()
-
-                        plt.show()
-
-                #pred, pred_5 = y_pred.argmax(), np.argpartition(np.squeeze(y_pred), -5)[-5:]
-                pred_raw = decode_predictions(y_pred, top=1)[0][0]
-                pred = int(get_labels_for_wnid(pred_raw[0], DICT_FILE_PATH)[0])
-                pred_5_raw = decode_predictions(y_pred, top=5)[0]
-                pred_5 = []
-                for top5 in pred_5_raw:
-                    pred_5.append(int(get_labels_for_wnid(top5[0], DICT_FILE_PATH)[0]))
-
-                print(
-                    f'Image {img_idx} out of {len(dirs) * images_per_class} (eps = {epsilon_og}). Elapsed time: {time.process_time() - start}')
-                aciertos.append(labels[img_idx] == pred)
-                aciertos_5.append(labels[img_idx] in pred_5)
-                img_idx += 1
-
-        accuracy = sum(aciertos) / len(aciertos)
-        accuracy_5 = sum(aciertos_5) / len(aciertos_5)
-        print(f'Accuracy top 1 (eps = {epsilon_og}): {accuracy}')
-        print(f'Accuracy top 5 (eps = {epsilon_og}): {accuracy_5}')
-        accuracy_list.append(accuracy)
-        accuracy_5_list.append(accuracy_5)
+        print(f'Accuracy top 1 (eps = {epsilon}): {accu_1}')
+        print(f'Accuracy top 5 (eps = {epsilon}): {accu_5}')
+        accuracy_list.append(accu_1)
+        accuracy_5_list.append(accu_5)
 
     # import pandas as pd
     # df = pd.DataFrame({'epsilons': epsilons, 'accuracy': accuracy_list, 'accuracy5': accuracy_5_list})
