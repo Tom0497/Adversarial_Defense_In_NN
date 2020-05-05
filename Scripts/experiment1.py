@@ -76,7 +76,6 @@ def generate_adversarial(model, examples, labels, epsilon, attack_type):
                 break
 
             img_adversarial = image + 388 * perturbations * epsilon # 388 = (224*224*3)**0.5
-            print("listo")
             x.append(img_adversarial)
 
         x = np.asarray(x).reshape((len(examples), 224, 224, 3))
@@ -129,7 +128,6 @@ if __name__ == "__main__":
             else:
                 img_adversarial = next(generate_adversarial(model=model, examples=images, labels=one_hot_labels,
                                                             epsilon=epsilon, attack_type=attack_type))
-                print("llegue!")
                 _, accu_1, accu_5 = model.evaluate(x=img_adversarial.copy(), y=one_hot_labels, batch_size=1)
 
                 epsilon = epsilon if attack_type != 'rfgs' else epsilon + alpha
