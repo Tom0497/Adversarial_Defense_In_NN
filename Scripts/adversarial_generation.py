@@ -1,11 +1,13 @@
 import os
 import time
 
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input, decode_predictions
 from Scripts.utils import image_getter, restore_original_image_from_array, plot_image_comparison
+from Scripts.imagenetData import labels_to_one_hot
 
 tf.compat.v1.enable_eager_execution()
 
@@ -32,25 +34,27 @@ def adversarial_pattern(model, image, label):
 
 def adversarial_step_ll(model, image, num_classes):
     image = tf.cast(image, tf.float32)
-    loss_object = tf.keras.losses.CategoricalCrossentropy()
 
     with tf.GradientTape() as tape:
         tape.watch(image)
         prediction = model(image)
-        y_ll = prediction.numpy().argmin(axis=1)
-        y_ll = tf.one_hot(y_ll, num_classes)
-        loss = loss_object(y_ll, prediction)
+        # y_ll = prediction.numpy().argmin(axis=1)
+        # y_ll = tf.one_hot(y_ll, num_classes)
+        # loss = loss_object(y_ll, prediction)
+        y_ll = model(image).numpy().argmin()
+        y_ll = labels_to_one_hot([y_ll], num_classes)[0]
+        loss = tf.keras.losses.MSE(y_ll, prediction)
 
-    signed_gradient = -1*tape.gradient(loss, image)
+    signed_gradient = tape.gradient(loss, image)
 
-    return signed_gradient
+    return -1 * tf.sign(signed_gradient)
 
 
 def generate_adversarial(model, examples, labels, epsilon, attack_type):
     while True:
         x = []
 
-        for idx, image in enumerate(examples):
+        for idx, image in enumerate(tqdm(examples)):
             label = labels[idx]
 
             if attack_type == 'step_ll':
@@ -58,6 +62,7 @@ def generate_adversarial(model, examples, labels, epsilon, attack_type):
                 perturbations = np.array([pert / np.linalg.norm(pert) for pert in perturbations])
 
             elif attack_type == 'rfgs':
+                alpha = epsilon/2
                 image += alpha * np.random.randn(*image.shape)
                 epsilon -= alpha
                 perturbations = adversarial_pattern(model, image.reshape((1, 224, 224, 3)), label).numpy()
@@ -84,7 +89,7 @@ def generate_adversarial(model, examples, labels, epsilon, attack_type):
 
 
 if __name__ == "__main__":
-    attacks_list = ['fg', 'rfgs', 'step_ll']
+    attacks_list = ['step_ll']
     for attack_type in attacks_list:
         plot_resulting_examples = False
         save_results = True
@@ -117,11 +122,10 @@ if __name__ == "__main__":
         accuracy_5_list = []
 
         #epsilons = np.linspace(0, 10, 11)
-        epsilons = [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3]
+        epsilons = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3]
         plotted_idx = []
 
-        for epsilon in epsilons:
-
+        for epsilon in tqdm(epsilons):
             alpha = epsilon / 2
             if epsilon == 0:
                 _, accu_1, accu_5 = model.evaluate(x=images.copy(), y=one_hot_labels)
@@ -152,7 +156,7 @@ if __name__ == "__main__":
                                                                                                    confidence*100),
                                           title_adv='Adversarial: {0} \n Confidence= {1:.1f}%'.format(adv_class,
                                                                                                       adv_confidence*100),
-                                          title_diff='Difference \n epsilon= {}'.format(epsilon))
+                                          title_diff='Difference \n epsilon= {}'.format(epsilon), save_plot=[False,''])
 
             print(f'Accuracy top 1 (eps = {epsilon}): {accu_1}')
             print(f'Accuracy top 5 (eps = {epsilon}): {accu_5}')
@@ -161,7 +165,7 @@ if __name__ == "__main__":
 
         import pandas as pd
         df = pd.DataFrame({'epsilons': epsilons, 'accuracy': accuracy_list, 'accuracy5': accuracy_5_list})
-        df.to_csv(attack_type + '.csv')
+        df.to_csv(attack_type + '6.csv')
 
         plt.plot(epsilons, accuracy_list, label='accuracy top-1')
         plt.plot(epsilons, accuracy_5_list, label='accuracy top-5')
