@@ -1,13 +1,12 @@
 import os
-import time
 
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input, decode_predictions
-from Scripts.utils import image_getter, restore_original_image_from_array, plot_image_comparison
 from Scripts.imagenetData import labels_to_one_hot
+from Scripts.utils import image_getter, restore_original_image_from_array, plot_image_comparison
+from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input, decode_predictions
+from tqdm import tqdm
 
 tf.compat.v1.enable_eager_execution()
 

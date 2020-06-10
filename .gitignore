@@ -227,5 +227,6 @@ data/
 *.hdf5
 Scripts/trainHistoryLogs/
 Scripts/trainModelsWeights/
+logs/
 
 # End of https://www.gitignore.io/api/python,pycharm+all

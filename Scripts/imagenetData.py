@@ -26,10 +26,10 @@ else:
     # for local use
     cwd = os.getcwd()
     directory_path = os.path.dirname(cwd)
-    DIR_BINARIES = os.path.join(os.path.dirname(directory_path), "images")
-    DICT_FILE_PATH = os.path.join(directory_path, "image_metadata", CLASSES_FILE)
-    URLS_FILE_PATH = os.path.join(directory_path, "image_metadata", URLS_FILE)
-    URLS_FOLDER_PATH = os.path.join(directory_path, "image_metadata", "urls")
+    DIR_BINARIES = '../images'
+    DICT_FILE_PATH = os.path.join("../image_metadata", CLASSES_FILE)
+    URLS_FILE_PATH = os.path.join("../image_metadata", URLS_FILE)
+    URLS_FOLDER_PATH = os.path.join("../image_metadata", "urls")
 
 
 def get_sorted_dirs(path):
