@@ -1,5 +1,5 @@
 from pickle import load
-from models_and_utils import get_opt_and_eps, summary_of_register
+from Scripts.models_and_utils import get_opt_and_eps, summary_of_register
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np

@@ -28,7 +28,7 @@ def image_getter(path):
     return image_list
 
 
-def plot_image_comparison(image_, adversarial, title_img="", title_adv="", title_diff=""):
+def plot_image_comparison(image_, adversarial, save_plot, title_img="", title_adv="", title_diff="", ):
     """
     Plots an image_, its given adversarial generated example and the difference between them in order to visualize
     the similarities
@@ -42,23 +42,32 @@ def plot_image_comparison(image_, adversarial, title_img="", title_adv="", title
     if image_ is not None:
         plt.figure()
 
+        plt.gca().set_axis_off()
+        plt.subplots_adjust(top=1, bottom=0, right=1, left=0,
+                            hspace=0, wspace=0)
+        plt.margins(0, 0)
+        plt.gca().xaxis.set_major_locator(plt.NullLocator())
+        plt.gca().yaxis.set_major_locator(plt.NullLocator())
+
         plt.subplot(1, 3, 1)
         plt.title('Original' if title_img == "" else title_img)
         plt.imshow(image_ / 255)  # division by 255 to convert [0, 255] to [0, 1]
         plt.axis('off')
 
-        plt.subplot(1, 3, 2)
+        plt.subplot(1, 3, 3)
         plt.title('Adversarial' if title_adv == "" else title_adv)
         plt.imshow(adversarial / 255)
         plt.axis('off')
 
-        plt.subplot(1, 3, 3)
+        plt.subplot(1, 3, 2)
         plt.title('Difference' if title_diff == "" else title_diff)
         difference = adversarial - image_
         plt.imshow(difference / abs(difference).max() * 0.2 + 0.5)
         plt.axis('off')
 
         plt.tight_layout()
+        if save_plot[0]:
+            plt.savefig(save_plot[1] + '.eps', format='eps', bbox_inches='tight',pad_inches=0)
         plt.show()
 
 

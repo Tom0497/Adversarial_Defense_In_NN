@@ -6,15 +6,26 @@ import urllib.error
 import http.client
 import json
 import ssl
-import sys
 
-classes_file = r"/imagenet_class_index.json"
-urls_file = r"/fall11_urls.txt"
-current_directory = os.getcwd()
-dict_path_ = os.path.dirname(current_directory) + r"/image_metadata" + classes_file
-urls_path = os.path.dirname(current_directory) + r"/image_metadata" + urls_file
-images_path = os.path.dirname(current_directory) + r"/images"
-urls_folder_path = os.path.dirname(current_directory) + r"/image_metadata/urls"
+CLASSES_FILE = r"/imagenet_class_index.json"
+URLS_FILE = r"/fall11_urls.txt"
+
+use_colab = False
+
+if use_colab:
+    # for google collaboratory purposes
+    DIR_BINARIES = r"/content/drive/My Drive/ImageNetDataSets/ImageNet/Images"
+    DICT_FILE_PATH = os.path.join("/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID", CLASSES_FILE)
+    URLS_FILE_PATH = os.path.join("/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID", URLS_FILE)
+    URLS_FOLDER_PATH = os.path.join("/content/drive/My Drive/ImageNetDataSets/ImageNet URLs and WnID", "/urls")
+else:
+    # for local use
+    cwd = os.getcwd()
+    directory_path = os.path.dirname(cwd)
+    DIR_BINARIES = os.path.join(os.path.dirname(directory_path), "images")
+    DICT_FILE_PATH = os.path.join(directory_path, "image_metadata", CLASSES_FILE)
+    URLS_FILE_PATH = os.path.join(directory_path, "image_metadata", URLS_FILE)
+    URLS_FOLDER_PATH = os.path.join(directory_path, "image_metadata", "urls")
 
 
 def get_dict_classes(path):
@@ -63,8 +74,7 @@ def get_image_from_url(url):
             urllib.error.URLError,
             IOError,
             http.client.HTTPException,
-            SyntaxError,
-            ssl.CertificateError) as e:
+            SyntaxError, ssl.CertificateError, UnicodeEncodeError ) as e:
         print(e)
         return None
 
@@ -149,11 +159,10 @@ def get_urls_by_wnid(wnid, path):
 
 def generate_urls_file(wnid, raw_path, url_folder_path):
     """
-
+    Generates file with all URLs for specific wnid
     :param wnid:            Desired wnid to filter urls
     :param raw_path:        Path to the .txt file that contains the raw version of the wnid and url data for the images
     :param url_folder_path: Path to the folder in which url files will be saved
-    :return:
     """
     url_list = get_urls_by_wnid(wnid, raw_path)
     if not os.path.isdir(url_folder_path):
@@ -294,19 +303,3 @@ def get_labels_for_wnid(wnid, json_path):
             value = data[key]
             if value[0] == wnid:
                 return key, value[1]
-
-
-if __name__ == "__main__":
-    inputs = sys.argv
-
-    img_per_class = int(inputs[1])
-    start_class = int(inputs[2])
-    stop_class = int(inputs[3])
-
-    for i in range(start_class, stop_class + 1):
-        download_images_by_int_label(i, images_path,
-                                     urls_path,
-                                     urls_folder_path,
-                                     dict_path_,
-                                     download_limit=img_per_class,
-                                     starting_url=1)

@@ -7,9 +7,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from pickle import dump
 
-import models_and_utils as mm
+import Scripts.models_and_utils as mm
 import tensorflow as tf
-from imagenetData import ImageNetData
+from Scripts.imagenet_data import ImageNetData
 from tensorflow.python.keras.backend import clear_session
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 

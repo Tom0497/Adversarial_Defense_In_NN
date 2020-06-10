@@ -2,13 +2,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
 import numpy as np
 from sklearn.model_selection import train_test_split
 
 from tensorflow.python.keras.preprocessing import image
 
-from DataExtractor import *
+from Scripts.data_extractor import *
 
 WIDTH, HEIGHT = 224, 224
 use_colab = False

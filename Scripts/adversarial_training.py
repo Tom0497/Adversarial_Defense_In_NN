@@ -3,13 +3,13 @@ adversarial_training.py: script that applies adversarial training as described i
                         adjusted are at the beginning of script, being the most relevant attack_type.
 """
 
-import adversarial_utils as au
+import Scripts.adversarial_utils as au
 import matplotlib.pyplot as plt
-import models_and_utils as mm
+import Scripts.models_and_utils as mm
 import numpy as np
 import seaborn as sns
 import tensorflow as tf
-from imagenetData import ImageNetData
+from Scripts.imagenet_data import ImageNetData
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 from pickle import dump
 
